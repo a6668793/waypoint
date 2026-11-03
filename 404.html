@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<!-- waypoint-base: "auto" = 專案網站 (user.github.io/repo) 自動判斷；自訂網域或 user.github.io 根網站請改成 "" -->
+<meta name="waypoint-base" content="auto">
+<title>前往中…</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 15px/1.6 system-ui, -apple-system, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: #f3f6f6; color: #122120; padding: 24px; box-sizing: border-box; }
+  @media (prefers-color-scheme: dark) { body { background: #0d1413; color: #e6eeec; } a { color: #3fc1b3; } }
+  main { max-width: 440px; text-align: center; }
+  a { color: #0b6b62; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin: 0 2px; opacity: .3; animation: b 1s infinite; }
+  .dot:nth-child(2) { animation-delay: .15s } .dot:nth-child(3) { animation-delay: .3s }
+  @keyframes b { 50% { opacity: 1 } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; opacity: .6 } }
+</style>
+</head>
+<body>
+<main id="m"><p id="msg">正在前往目的地 <span class="dot"></span><span class="dot"></span><span class="dot"></span></p></main>
+<script>
+/*CORE*/
+var WPCore = (function () {
+  var MACRO_VALUE = /^(\{\{[^{}]*\}\}|\{[^{}]*\})$/;
+  var CLICK_IDS = { fbclid: 1, gclid: 1, gbraid: 1, wbraid: 1, ttclid: 1, msclkid: 1, ldtag_cl: 1, yclid: 1 };
+
+  function slugKey(s) { return String(s || '').trim().normalize('NFC').toLowerCase(); }
+
+  function safeDecode(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
+
+  function isUnresolvedMacro(raw) { return MACRO_VALUE.test(safeDecode(raw)); }
+  function pairs(qs) { return String(qs || '').replace(/^\?/, '').split('&').filter(Boolean); }
+  function keyOf(p) { return safeDecode(p.split('=')[0]); }
+  function valueOf(p) { return p.slice(p.indexOf('=') + 1); }
+
+  /* 組合最終網址。不使用 URL / URLSearchParams，避免 {{product.id}} 被轉成 %7B%7B...%7D%7D。
+     1. 請求上的 utm_* 與點擊 ID 一律覆蓋目的地的同名參數（廣告平台已替換巨集）
+     2. forwardQuery 為 true 時，其餘參數也一併帶入
+     3. 值仍是巨集字樣（未被替換）的參數會被移除 */
+  function buildLocation(destination, incomingSearch, forwardQuery) {
+    var hash = '', base = destination;
+    var hi = base.indexOf('#');
+    if (hi > -1) { hash = base.slice(hi); base = base.slice(0, hi); }
+    var qi = base.indexOf('?');
+    var path = qi > -1 ? base.slice(0, qi) : base;
+    var destPairs = qi > -1 ? pairs(base.slice(qi + 1)) : [];
+    var incoming = pairs(incomingSearch).filter(function (p) { return !isUnresolvedMacro(valueOf(p)); });
+    var order = [], map = {};
+    function put(k, p) { if (!(k in map)) order.push(k); map[k] = p; }
+    destPairs.forEach(function (p) { put(keyOf(p), p); });
+    incoming.forEach(function (p) {
+      var k = keyOf(p);
+      if (k.indexOf('utm_') === 0 || CLICK_IDS[k] || forwardQuery) put(k, p);
+    });
+    var out = order.map(function (k) { return map[k]; }).filter(function (p) { return !(p.indexOf('=') > -1 && isUnresolvedMacro(valueOf(p))); });
+    return path + (out.length ? '?' + out.join('&') : '') + hash;
+  }
+
+  function detectInApp(ua) {
+    if (/Instagram/i.test(ua)) return 'instagram';
+    if (/FB_IAB\/MESSENGER|MESSENGER|FBAN\/Messenger/i.test(ua)) return 'messenger';
+    if (/FBAN|FBAV|FB_IAB|FBIOS/i.test(ua)) return 'facebook';
+    if (/\bLine\/\d|\bLINE\/\d|jp\.naver\.line/.test(ua)) return 'line';
+    if (/musical_ly|BytedanceWebview|TikTok|Bytedance/i.test(ua)) return 'tiktok';
+    if (/Twitter for|TwitterAndroid|Snapchat|Pinterest\/|MicroMessenger|KAKAOTALK/i.test(ua)) return 'other';
+    if (/; wv\)/.test(ua) && /Version\/[\d.]+/.test(ua)) return 'other';
+    return 'none';
+  }
+
+  function parseUA(ua) {
+    var os = 'other', m;
+    if (/iPhone|iPad|iPod/.test(ua)) os = 'ios';
+    else if (/Android/.test(ua)) os = 'android';
+    else if (/Windows NT/.test(ua)) os = 'windows';
+    else if (/Mac OS X/.test(ua)) os = 'macos';
+    else if (/CrOS|Linux|X11/.test(ua)) os = 'linux';
+    var device = 'desktop';
+    if (/iPad|Tablet|Android(?!.*Mobile)/.test(ua)) device = 'tablet';
+    else if (/Mobi|iPhone|iPod|Android.*Mobile/.test(ua)) device = 'mobile';
+    var inApp = detectInApp(ua), browser = 'Other';
+    if (inApp === 'line') browser = 'LINE';
+    else if (inApp === 'instagram') browser = 'Instagram';
+    else if (inApp === 'facebook') browser = 'Facebook';
+    else if (inApp === 'messenger') browser = 'Messenger';
+    else if (inApp === 'tiktok') browser = 'TikTok';
+    else if (/EdgA?\/|Edg\//.test(ua)) browser = 'Edge';
+    else if (/OPR\//.test(ua)) browser = 'Opera';
+    else if (/SamsungBrowser/.test(ua)) browser = 'Samsung Internet';
+    else if (/Chrome\/|CriOS\//.test(ua)) browser = 'Chrome';
+    else if (/Firefox\/|FxiOS\//.test(ua)) browser = 'Firefox';
+    else if (/Version\/[\d.]+.*Safari/.test(ua)) browser = 'Safari';
+    return { os: os, device: device, browser: browser, inApp: inApp };
+  }
+
+  /* 會執行 JavaScript 的機器人才會走到這裡（連結預覽爬蟲不執行 JS，本來就不會被記錄） */
+  var BOT_RE = /headlesschrome|phantomjs|puppeteer|playwright|selenium|lighthouse|pagespeed|gtmetrix|googlebot|adsbot|bingbot|bingpreview|applebot|facebookexternalhit|facebookcatalog|meta-externalagent|line-poker|twitterbot|slackbot|discordbot|telegrambot|whatsapp\/|linkedinbot|pinterestbot|yandex|baiduspider|semrush|ahrefs|petalbot|\b(bot|crawler|spider)\b/i;
+  function detectBot(ua, webdriver) {
+    if (!ua) return 'empty-ua';
+    if (webdriver) return 'webdriver';
+    var m = ua.match(BOT_RE);
+    return m ? m[0].toLowerCase() : '';
+  }
+
+  var TZ_COUNTRY = { 'Asia/Taipei': 'TW', 'Asia/Hong_Kong': 'HK', 'Asia/Macau': 'MO', 'Asia/Tokyo': 'JP', 'Asia/Seoul': 'KR', 'Asia/Shanghai': 'CN', 'Asia/Singapore': 'SG', 'Asia/Kuala_Lumpur': 'MY', 'Asia/Bangkok': 'TH', 'Asia/Ho_Chi_Minh': 'VN', 'Asia/Manila': 'PH', 'Australia/Sydney': 'AU' };
+  function countryFromTz(tz) {
+    if (!tz) return '';
+    if (TZ_COUNTRY[tz]) return TZ_COUNTRY[tz];
+    if (/^America\//.test(tz)) return 'US';
+    if (/^Europe\//.test(tz)) return 'EU';
+    return '';
+  }
+
+  function refererHost(ref, ownHost) {
+    if (!ref) return '';
+    try { var h = new URL(ref).hostname.replace(/^www\./, ''); return h === String(ownHost).replace(/^www\./, '') ? '' : h; } catch (e) { return ''; }
+  }
+
+  return { slugKey: slugKey, safeDecode: safeDecode, buildLocation: buildLocation, parseUA: parseUA, detectBot: detectBot, countryFromTz: countryFromTz, refererHost: refererHost };
+})();
+/*ENDCORE*/
+
+(function () {
+  var $msg = document.getElementById('msg');
+  function show(html) { $msg.innerHTML = html; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // 1) 站台根路徑（GitHub 專案網站為 /repo）
+  var baseMeta = (document.querySelector('meta[name="waypoint-base"]') || {}).content;
+  var segs = location.pathname.split('/');
+  var base = '';
+  if (baseMeta === 'auto') { if (/\.github\.io$/.test(location.hostname) && segs[1]) base = '/' + segs[1]; }
+  else base = baseMeta || '';
+  var rest = segs.slice(base ? 2 : 1).join('/').replace(/\/+$/, '');
+  var slug = WPCore.slugKey(WPCore.safeDecode(rest));
+  var home = base + '/';
+
+  if (!slug || slug === 'index.html') { location.replace(home); return; }
+
+  function loadConfig(cb) {
+    var s = document.createElement('script');
+    s.src = base + '/config.js';
+    s.onload = s.onerror = function () { cb(window.WAYPOINT || {}); };
+    document.head.appendChild(s);
+  }
+
+  function findIn(list) {
+    for (var i = 0; i < (list || []).length; i++) if (WPCore.slugKey(list[i].slug) === slug) return list[i];
+    return null;
+  }
+
+  loadConfig(function (cfg) {
+    var gasUrl = cfg.appsScriptUrl || '';
+
+    // 靜態 links.json（CDN，快）與雲端試算表（新連結立即可用）同時查詢
+    var staticP = fetch(base + '/links.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { return j ? findIn(j.links) : null; }).catch(function () { return null; });
+    var cloudP = gasUrl
+      ? fetch(gasUrl + '?action=link&slug=' + encodeURIComponent(slug)).then(function (r) { return r.json(); })
+          .then(function (j) { return j && j.link ? j.link : null; }).catch(function () { return null; })
+      : Promise.resolve(null);
+
+    staticP.then(function (l) { return l || cloudP; }).then(function (link) {
+      if (!link) return notFound(cfg);
+      if ((link.status || 'active') !== 'active') return notFound(cfg, true);
+      var dest = WPCore.buildLocation(link.destination, location.search, !!(link.forward_query === true || link.forward_query === 'TRUE' || link.forward_query === 1 || link.forwardQuery));
+      logClick(cfg, slug, link);
+      location.replace(dest);
+    });
+  });
+
+  function notFound(cfg, paused) {
+    if (cfg.fallbackUrl) { location.replace(cfg.fallbackUrl); return; }
+    document.title = paused ? '連結已暫停' : '找不到這個短網址';
+    show('<h1 style="font-size:20px;margin:0 0 8px">' + (paused ? '這個連結目前已暫停' : '找不到這個短網址') + '</h1><p style="margin:0 0 16px;opacity:.75">請確認網址是否正確，或聯絡分享連結的人。</p><a href="' + esc(home) + '">回首頁</a>');
+  }
+
+  function logClick(cfg, slug, link) {
+    if (!cfg.appsScriptUrl) return;
+    try {
+      var ua = navigator.userAgent || '';
+      var p = WPCore.parseUA(ua);
+      var vid = '';
+      try { vid = localStorage.getItem('wp_vid') || ''; if (!vid) { vid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()); localStorage.setItem('wp_vid', vid); } } catch (e) { vid = 'anon'; }
+      var q = new URLSearchParams(location.search);
+      var dest = link.destination || '';
+      var dq = {}; try { new URL(dest).searchParams.forEach(function (v, k) { dq[k] = v; }); } catch (e) {}
+      function utm(k) { var v = q.get(k); if (v && !/^\{.*\}$/.test(v)) return v; var d = dq[k] || link[k] || ''; return /^\{.*\}$/.test(d) ? '' : d; }
+      var bot = WPCore.detectBot(ua, navigator.webdriver);
+      var body = JSON.stringify({
+        action: 'click', slug: slug, visitor: vid, bot: bot ? 1 : 0, bot_reason: bot,
+        referer: WPCore.refererHost(document.referrer, location.hostname),
+        os: p.os, browser: p.browser, in_app: p.inApp, device: p.device,
+        country: WPCore.countryFromTz((Intl.DateTimeFormat().resolvedOptions() || {}).timeZone),
+        lang: (navigator.language || '').slice(0, 16),
+        utm_source: utm('utm_source'), utm_medium: utm('utm_medium'), utm_campaign: utm('utm_campaign'), utm_term: utm('utm_term'), utm_content: utm('utm_content')
+      });
+      // keepalive：頁面跳轉後請求仍會送出。不帶自訂標頭，視為簡單請求，不需要預檢。
+      fetch(cfg.appsScriptUrl, { method: 'POST', body: body, mode: 'no-cors', keepalive: true });
+    } catch (e) { /* 記錄失敗不影響轉址 */ }
+  }
+})();
+</script>
+<noscript><p>請開啟 JavaScript 以前往目的地。</p></noscript>
+</body>
+</html>

@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230b6b62%27/%3E%3Cpath d=%27M12 20l8-8M13 11h-1a4 4 0 000 8h2M19 21h1a4 4 0 000-8h-2%27 stroke=%27white%27 stroke-width=%272.5%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Waypoint 短網址平台</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="config.js"></script>
+<style>
+/* Layout: sticky top bar with 4 tabs; each tab is a working surface. Create = form left + sticky preview/QR right. */
+:root {
+  --bg: #f3f6f6; --surface: #ffffff; --surface2: #eaf0ef; --line: #d8e0df;
+  --fg: #122120; --muted: #566866; --faint: #849593;
+  --accent: #0b6b62; --accent-fg: #ffffff; --accent-soft: #d9eeeb;
+  --ok: #17794a; --ok-soft: #dcf1e5; --warn: #9a5b06; --warn-soft: #fbecd0; --bad: #b83227; --bad-soft: #fbe0dc;
+  --macro: #7a3fc4; --macro-soft: #ece1fa;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+  --font-body: 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1413; --surface: #141d1c; --surface2: #1a2625; --line: #263431;
+    --fg: #e6eeec; --muted: #9db0ad; --faint: #6c7f7c;
+    --accent: #3fc1b3; --accent-fg: #04201d; --accent-soft: #123532;
+    --ok: #4cc58a; --ok-soft: #12301f; --warn: #e0a24a; --warn-soft: #36270d; --bad: #f07a6e; --bad-soft: #3a1815;
+    --macro: #b996f0; --macro-soft: #2a1c44;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1413; --surface: #141d1c; --surface2: #1a2625; --line: #263431;
+  --fg: #e6eeec; --muted: #9db0ad; --faint: #6c7f7c;
+  --accent: #3fc1b3; --accent-fg: #04201d; --accent-soft: #123532;
+  --ok: #4cc58a; --ok-soft: #12301f; --warn: #e0a24a; --warn-soft: #36270d; --bad: #f07a6e; --bad-soft: #3a1815;
+  --macro: #b996f0; --macro-soft: #2a1c44;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--surface); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1280px; margin: 0 auto; }
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--surface); border-bottom: 1px solid var(--line);
+  margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.tab { display: inline-flex; align-items: center; gap: 8px; padding: 14px 14px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; background: none; }
+.tab:hover { color: var(--fg); }
+.tab[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--faint); text-transform: uppercase; }
+.input { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; color: var(--fg); font-size: 14px; min-width: 0; }
+.input.mono { font-size: 13px; }
+.input:focus, .btn:focus-visible, .tab:focus-visible, .chip:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.input::placeholder { color: var(--faint); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 6px; font-weight: 500; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--surface2); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.sm { padding: 5px 9px; font-size: 12.5px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.chip.macro { font-family: var(--font-mono); font-size: 11.5px; color: var(--macro); background: var(--macro-soft); border-color: transparent; }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); } .pill.mute { background: var(--surface2); color: var(--muted); }
+.urlbox { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface2); border-radius: 6px; padding: 9px 11px; word-break: break-all; overflow-wrap: anywhere; line-height: 1.6; }
+.urlbox .m { color: var(--macro); background: var(--macro-soft); border-radius: 3px; padding: 0 2px; }
+.urlbox .k { color: var(--accent); }
+table.t { width: 100%; border-collapse: collapse; }
+table.t th { text-align: left; font-size: 12px; font-weight: 500; color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.t td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.t tr.row { cursor: pointer; } table.t tr.row:hover td { background: var(--surface2); } table.t tr.sel td { background: var(--accent-soft); }
+.scroll-x { overflow-x: auto; }
+.grid-create { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; align-items: start; }
+@media (max-width: 1020px) { .grid-create { grid-template-columns: minmax(0, 1fr); } .sticky-col { position: static !important; } }
+.sticky-col { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 62px); }
+.bar { height: 8px; border-radius: 0 4px 4px 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--surface2); }
+.seg button { padding: 5px 12px; border-radius: 6px; font-weight: 500; color: var(--muted); cursor: pointer; background: none; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 90; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; max-width: calc(100vw - 32px); box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.recharts-wrapper text, .recharts-text { fill: var(--muted); font-size: 11.5px; }
+.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+input[type=color] { width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
+input[type=range] { accent-color: var(--accent); }
+details > summary { cursor: pointer; list-style: none; } details > summary::-webkit-details-marker { display: none; }
+</style>
+<script>tailwind.config = { corePlugins: { preflight: true } };</script>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://unpkg.com/react-is@18.3.1/umd/react-is.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect, useRef, useCallback } = React;
+const { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } = Recharts;
+/* REAL = 部署在 GitHub Pages（有 config.js）。沒有 config.js 時是示範模式。 */
+const CFG = window.WAYPOINT || {};
+const REAL = !!window.WAYPOINT;
+const LS = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+
+/* ───────────────────────── Icons (Lucide) ───────────────────────── */
+function Icon({ name, size = 16, className = '', style }) {
+  const def = window.lucide && window.lucide.icons ? window.lucide.icons[name] : null;
+  let nodes = [];
+  if (def) nodes = def[0] === 'svg' ? (def[2] || []) : (Array.isArray(def[0]) ? def : []);
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ flex: 'none', ...style }} aria-hidden="true">
+      {nodes.map((n, i) => React.createElement(n[0], { ...n[1], key: i }))}
+    </svg>
+  );
+}
+
+/* ───────────────────────── UTM / macro logic ───────────────────────── */
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+const MACRO_RE = /(\{\{[^{}]*\}\}|\{[^{}]*\})/g;
+const hasMacro = (s) => { MACRO_RE.lastIndex = 0; return /(\{\{[^{}]*\}\}|\{[^{}]*\})/.test(s || ''); };
+
+/* Percent-encode everything except ad-platform macros. split() with a capture group puts macros at odd indices. */
+function encodeKeepMacros(v) {
+  return v.split(MACRO_RE).map((seg, i) => (i % 2 ? seg : encodeURIComponent(seg))).join('');
+}
+/* 清除巨集：移除 {{...}} 與 {...}，並整理留下的空參數與結尾分隔符號 */
+function stripMacros(s) { return (s || '').replace(/\{\{[^{}]*\}\}|\{[^{}]*\}/g, '').replace(/[\s_\-]+$/, ''); }
+function stripMacrosUrl(u) {
+  if (!hasMacro(u)) return u;
+  let x = (u || '').replace(/\{\{[^{}]*\}\}|\{[^{}]*\}/g, '');
+  x = x.replace(/([?&])[^=&#?]+=(?=&|#|$)/g, '$1').replace(/\?&/g, '?').replace(/&&+/g, '&').replace(/[?&]+(?=#|$)/, '');
+  return x;
+}
+const countMacros = (s) => ((s || '').split(MACRO_RE).length - 1) / 2;
+function buildUtmParams(utm) {
+  return UTM_KEYS.filter((k) => utm[k] && utm[k].trim()).map((k) => k + '=' + encodeKeepMacros(utm[k].trim()));
+}
+function buildUtmUrl(base, utm) {
+  let b = (base || '').trim();
+  if (!b) return '';
+  let hash = '';
+  const hi = b.indexOf('#');
+  if (hi > -1) { hash = b.slice(hi); b = b.slice(0, hi); }
+  let path = b, existing = [];
+  const qi = b.indexOf('?');
+  if (qi > -1) {
+    path = b.slice(0, qi);
+    existing = b.slice(qi + 1).split('&').filter(Boolean).filter((p) => !/^utm_/.test(p.split('=')[0]));
+  }
+  const q = [...existing, ...buildUtmParams(utm)].join('&');
+  return path + (q ? '?' + q : '') + hash;
+}
+/* Only the params whose value contains a macro: these must travel on the short link so the ad platform can fill them. */
+function buildPassThrough(utm) {
+  return UTM_KEYS.filter((k) => hasMacro(utm[k])).map((k) => k + '=' + utm[k].trim()).join('&');
+}
+const SLUG_ALPHABET = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+const randomSlug = (n = 6) => Array.from({ length: n }, () => SLUG_ALPHABET[Math.floor(Math.random() * SLUG_ALPHABET.length)]).join('');
+const RESERVED = ['api', 'admin', 'dashboard', 'login', '_next', 'static', 'favicon.ico', 'robots.txt', 'index.html', 'config.js', 'links.json', 'cloud'];
+/* 短碼可使用中文、英數、底線、連字號。比對時統一為 NFC 並轉小寫。 */
+const SLUG_RE = /^[\p{L}\p{N}_-]{2,50}$/u;
+const normSlug = (s) => (s || '').trim().normalize('NFC');
+const slugKey = (s) => normSlug(s).toLowerCase();
+const hasNonAscii = (s) => /[^\x00-\x7F]/.test(s || '');
+
+const MACROS = {
+  Meta: ['{{campaign.name}}', '{{campaign.id}}', '{{adset.name}}', '{{adset.id}}', '{{ad.name}}', '{{ad.id}}', '{{product.id}}', '{{product.name}}', '{{placement}}', '{{site_source_name}}'],
+  'Google Ads': ['{lpurl}', '{campaignid}', '{adgroupid}', '{creative}', '{keyword}', '{matchtype}', '{network}', '{device}'],
+};
+
+/* Render a URL with macros and param keys highlighted */
+function ColoredUrl({ url }) {
+  const parts = url.split(MACRO_RE);
+  return (
+    <div className="urlbox">
+      {parts.map((p, i) => i % 2 ? <span key={i} className="m">{p}</span> :
+        p.split(/(utm_[a-z]+=)/).map((q, j) => /^utm_[a-z]+=$/.test(q) ? <span key={i + '-' + j} className="k">{q}</span> : <React.Fragment key={i + '-' + j}>{q}</React.Fragment>))}
+    </div>
+  );
+}
+
+/* ───────────────────────── Mock data ───────────────────────── */
+const TODAY = REAL ? (() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d; })() : new Date(2026, 10, 3, 12);
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const md = (d) => String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0');
+const fmt = (n) => Math.round(n).toLocaleString('zh-TW');
+const pct = (n, d = 1) => (n * 100).toFixed(d) + '%';
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+const INITIAL_DOMAINS = [
+  { host: 'go.brand.com', isDefault: true, dns: 'verified', ssl: 'active', cname: 'cname.waypoint.link', added: '2026-03-12', fallback: 'https://www.brand.com' },
+  { host: 'shop.brand.tw', isDefault: false, dns: 'verified', ssl: 'active', cname: 'cname.waypoint.link', added: '2026-05-04', fallback: 'https://www.brand.com.tw' },
+  { host: 'promo.brand.com', isDefault: false, dns: 'verified', ssl: 'issuing', cname: 'cname.waypoint.link', added: '2026-11-02', fallback: 'https://www.brand.com' },
+  { host: 'link.brand.com.tw', isDefault: false, dns: 'pending', ssl: 'waiting', cname: 'cname.waypoint.link', added: '2026-11-03', found: 'brand-shop.cdn.example.net', fallback: 'https://www.brand.com.tw' },
+];
+
+const U = (source, medium, campaign, content = '', term = '') => ({ utm_source: source, utm_medium: medium, utm_campaign: campaign, utm_term: term, utm_content: content });
+const INITIAL_LINKS = [
+  { id: 1, domain: 'go.brand.com', slug: 'd11-dpa', base: 'https://www.brand.com/collections/double11', utm: U('facebook', 'paid_social', '{{campaign.name}}', '{{product.id}}'), dpa: true, resolved: 'double11_dpa_retarget', status: 'active', age: 21, daily: 820, uniq: 0.71, profile: 'facebook' },
+  { id: 2, domain: 'go.brand.com', slug: 'line-1103', base: 'https://www.brand.com/campaign/winter-warm', utm: U('line', 'social_push', 'line_oa_1103_push', 'flex_card_a'), dpa: false, status: 'active', age: 8, daily: 540, uniq: 0.78, profile: 'line' },
+  { id: 3, domain: 'shop.brand.tw', slug: 'ig-halloween', base: 'https://www.brand.com.tw/collections/halloween', utm: U('instagram', 'paid_social', 'ig_story_halloween', 'story_video_15s'), dpa: false, status: 'active', age: 12, daily: 310, uniq: 0.74, profile: 'instagram' },
+  { id: 4, domain: 'go.brand.com', slug: 'pmax-shoes', base: 'https://www.brand.com/collections/shoes', utm: U('google', 'cpc', 'google_pmax_shoes', '{creative}', '{keyword}'), dpa: true, status: 'active', age: 40, daily: 460, uniq: 0.66, profile: 'google' },
+  { id: 5, domain: 'shop.brand.tw', slug: 'vip-preview', base: 'https://www.brand.com.tw/vip/preview', utm: U('newsletter', 'email', 'edm_vip_preview', 'hero_cta'), dpa: false, status: 'active', age: 6, daily: 190, uniq: 0.82, profile: 'newsletter' },
+  { id: 6, domain: 'go.brand.com', slug: 'kol-mia', base: 'https://www.brand.com/products/airfit-runner', utm: U('instagram', 'influencer', 'kol_mia_unboxing', 'bio_link'), dpa: false, status: 'active', age: 30, daily: 150, uniq: 0.8, profile: 'instagram' },
+  { id: 7, domain: 'go.brand.com', slug: 'd11-dpa-new', base: 'https://www.brand.com/collections/double11', utm: U('facebook', 'paid_social', 'double11_dpa_prospecting', '{{product.id}}', '{{adset.name}}'), dpa: true, status: 'active', age: 21, daily: 640, uniq: 0.69, profile: 'facebook' },
+  { id: 8, domain: 'shop.brand.tw', slug: 'qr-taipei101', base: 'https://www.brand.com.tw/stores/taipei-101', utm: U('offline', 'qr', 'store_qr_taipei101', 'window_poster'), dpa: false, status: 'active', age: 55, daily: 70, uniq: 0.9, profile: 'offline' },
+  { id: 9, domain: 'go.brand.com', slug: 'sale-winter', base: 'https://www.brand.com/sale', utm: U('google', 'cpc', 'google_search_brand', '{creative}', '{keyword}'), dpa: true, status: 'paused', age: 18, daily: 220, uniq: 0.64, profile: 'google' },
+  { id: 10, domain: 'shop.brand.tw', slug: 'line-rich', base: 'https://www.brand.com.tw/member', utm: U('line', 'richmenu', 'line_oa_richmenu', 'menu_btn_2'), dpa: false, status: 'active', age: 80, daily: 380, uniq: 0.77, profile: 'line' },
+  { id: 11, domain: 'go.brand.com', slug: 'yt-review', base: 'https://www.brand.com/products/airfit-runner', utm: U('youtube', 'video', 'yt_review_airfit', 'description'), dpa: false, status: 'active', age: 35, daily: 95, uniq: 0.83, profile: 'google' },
+];
+const HISTORY = 89;
+
+const OS_NAMES = REAL ? ['iOS', 'Android', 'Windows', 'macOS', '其他'] : ['iOS', 'Android', 'Windows', 'macOS'];
+const BROWSER_NAMES = ['LINE 內建', 'Instagram 內建', 'Facebook 內建', 'Chrome', 'Safari', 'Edge / 其他'];
+const INAPP_IDX = [0, 1, 2];
+const PROFILES = {
+  facebook:   { os: [.52, .38, .07, .03], br: [.02, .12, .46, .18, .17, .05], ref: { 'm.facebook.com': .34, 'l.facebook.com': .22, 'facebook.com': .11, '(直接 / 無 Referer)': .33 } },
+  instagram:  { os: [.58, .34, .05, .03], br: [.01, .64, .10, .12, .10, .03], ref: { 'l.instagram.com': .52, 'instagram.com': .10, '(直接 / 無 Referer)': .38 } },
+  line:       { os: [.55, .38, .05, .02], br: [.78, 0, 0, .10, .09, .03], ref: { 'liff.line.me': .18, 'line.me': .08, '(直接 / 無 Referer)': .74 } },
+  google:     { os: [.34, .38, .19, .09], br: [.01, .01, .01, .58, .27, .12], ref: { 'googleads.g.doubleclick.net': .30, 'www.google.com': .38, 'www.youtube.com': .08, '(直接 / 無 Referer)': .24 } },
+  newsletter: { os: [.30, .22, .28, .20], br: [.03, .01, .01, .40, .33, .22], ref: { 'mail.google.com': .36, 'outlook.live.com': .18, '(直接 / 無 Referer)': .46 } },
+  offline:    { os: [.62, .34, .02, .02], br: [.06, .02, .01, .19, .60, .12], ref: { '(直接 / 無 Referer)': 1 } },
+};
+const REGIONS = [['台北市', .21], ['新北市', .19], ['桃園市', .11], ['台中市', .13], ['高雄市', .10], ['台南市', .07], ['新竹縣市', .06], ['其他縣市', .13]];
+const COUNTRIES = [['台灣', .93], ['香港', .02], ['美國', .02], ['日本', .01], ['其他', .02]];
+
+function dailySeries(link) {
+  const out = [];
+  const r = rng(link.id * 9973);
+  for (let d = HISTORY; d >= 0; d--) {
+    const date = addDays(TODAY, -d);
+    let clicks = 0;
+    if (d <= link.age && !(link.status === 'paused' && d < 5)) {
+      const wd = [0.9, 1.0, 1.02, 1.0, 1.04, 1.1, 0.96][date.getDay()];
+      const ramp = link.age < 30 ? 0.55 + 0.45 * (1 - d / Math.max(link.age, 1)) : 1;
+      const boost = /double11|d11/.test(link.slug) ? 1 + 0.5 * (1 - d / 21) : 1;
+      clicks = Math.max(0, Math.round(link.daily * wd * ramp * boost * (0.82 + r() * 0.36)));
+    }
+    out.push({ date, clicks, unique: Math.round(clicks * (link.uniq + (r() - 0.5) * 0.05)) });
+  }
+  return out;
+}
+const SERIES_CACHE = {};
+const seriesOf = (l) => SERIES_CACHE[l.id] || (SERIES_CACHE[l.id] = dailySeries(l));
+
+/* ── 真實資料（來自 Google 試算表的點擊紀錄） ── */
+const COUNTRY_NAMES = { TW: '台灣', HK: '香港', MO: '澳門', JP: '日本', KR: '韓國', CN: '中國', SG: '新加坡', MY: '馬來西亞', TH: '泰國', VN: '越南', PH: '菲律賓', AU: '澳洲', US: '美國', EU: '歐洲' };
+function parseClickRows(cols, rows) {
+  return rows.map((r) => {
+    const o = {}; cols.forEach((c, i) => { o[c] = r[i]; });
+    o.t = new Date(Number(o.ts)); o.slug = slugKey(o.slug);
+    o.bot = o.bot === 1 || o.bot === '1' || o.bot === true;
+    return o;
+  });
+}
+function realSeries(l, rows) {
+  const key = slugKey(l.slug), map = {};
+  (rows || []).forEach((r) => {
+    if (r.slug !== key || r.bot) return;
+    const k = ymd(r.t); const e = map[k] || (map[k] = { c: 0, v: new Set() });
+    e.c++; e.v.add(r.visitor);
+  });
+  const out = [];
+  for (let d = HISTORY; d >= 0; d--) { const date = addDays(TODAY, -d); const e = map[ymd(date)]; out.push({ date, clicks: e ? e.c : 0, unique: e ? e.v.size : 0 }); }
+  return out;
+}
+function realAggregate(rows, links, from, to) {
+  const slugs = new Set(links.map((l) => slugKey(l.slug)));
+  const prevLen = Math.round((to - from) / 864e5) + 1;
+  const f = ymd(from), t = ymd(to), pf = ymd(addDays(from, -prevLen)), pt = ymd(addDays(from, -1));
+  const days = [], idx = {};
+  for (let d = new Date(from); ymd(d) <= t; d = addDays(d, 1)) { idx[ymd(d)] = days.length; days.push({ date: new Date(d), label: md(d), total: 0, unique: 0, v: new Set() }); }
+  const os = [0, 0, 0, 0, 0], br = [0, 0, 0, 0, 0, 0], ref = {}, camp = {}, ctry = {}, prevCamp = {}, all = new Set();
+  let total = 0, prevTotal = 0, bots = 0, inapp = 0;
+  const OSI = { ios: 0, android: 1, windows: 2, macos: 3 };
+  (rows || []).forEach((r) => {
+    if (!slugs.has(r.slug)) return;
+    const k = ymd(r.t);
+    if (k >= pf && k <= pt) { if (!r.bot) { prevTotal++; const n = r.utm_campaign || '(未標記)'; prevCamp[n] = (prevCamp[n] || 0) + 1; } return; }
+    if (k < f || k > t) return;
+    if (r.bot) { bots++; return; }
+    total++; all.add(r.visitor);
+    const di = idx[k]; days[di].total++; days[di].v.add(r.visitor);
+    os[r.os in OSI ? OSI[r.os] : 4]++;
+    const bi = r.in_app === 'line' ? 0 : r.in_app === 'instagram' ? 1 : (r.in_app === 'facebook' || r.in_app === 'messenger') ? 2 : r.browser === 'Chrome' ? 3 : r.browser === 'Safari' ? 4 : 5;
+    br[bi]++; if (bi < 3) inapp++;
+    const rh = r.referer || '(直接 / 無 Referer)'; ref[rh] = (ref[rh] || 0) + 1;
+    const cn = COUNTRY_NAMES[r.country] || r.country || '未知'; ctry[cn] = (ctry[cn] || 0) + 1;
+    const name = r.utm_campaign || '(未標記)';
+    const c = camp[name] || (camp[name] = { name, source: r.utm_source || '-', medium: r.utm_medium || '-', clicks: 0, inapp: 0, v: new Set() });
+    c.clicks++; c.v.add(r.visitor); if (bi < 3) c.inapp++;
+  });
+  days.forEach((d) => { d.unique = d.v.size; delete d.v; });
+  const campaigns = Object.values(camp).map((c) => ({ name: c.name, source: c.source, medium: c.medium, clicks: c.clicks, inapp: c.inapp, unique: c.v.size, prev: prevCamp[c.name] || 0 })).sort((a, b) => b.clicks - a.clicks);
+  return { days, total, unique: all.size, prevTotal, inapp, bots, os, br, ref: Object.entries(ref).sort((a, b) => b[1] - a[1]), campaigns, geoRows: [], ctryRows: Object.entries(ctry) };
+}
+
+function aggregate(links, from, to) {
+  const prevLen = Math.round((to - from) / 864e5) + 1;
+  const prevFrom = addDays(from, -prevLen), prevTo = addDays(from, -1);
+  const days = [];
+  for (let d = new Date(from); d <= to; d = addDays(d, 1)) days.push({ date: new Date(d), label: md(d), total: 0, unique: 0 });
+  const os = [0, 0, 0, 0], br = [0, 0, 0, 0, 0, 0], ref = {}, campaigns = {}, geo = REGIONS.map(() => 0), ctry = COUNTRIES.map(() => 0);
+  let total = 0, unique = 0, prevTotal = 0;
+  links.forEach((l) => {
+    const prof = PROFILES[l.profile];
+    let lt = 0, lu = 0, lp = 0;
+    seriesOf(l).forEach((p) => {
+      if (p.date >= from && p.date <= addDays(to, 1) && ymd(p.date) <= ymd(to)) {
+        const idx = Math.round((p.date - from) / 864e5);
+        if (idx >= 0 && idx < days.length) { days[idx].total += p.clicks; days[idx].unique += p.unique; lt += p.clicks; lu += p.unique; }
+      }
+      if (ymd(p.date) >= ymd(prevFrom) && ymd(p.date) <= ymd(prevTo)) lp += p.clicks;
+    });
+    total += lt; unique += lu; prevTotal += lp;
+    prof.os.forEach((w, i) => os[i] += lt * w);
+    prof.br.forEach((w, i) => br[i] += lt * w);
+    Object.entries(prof.ref).forEach(([k, w]) => ref[k] = (ref[k] || 0) + lt * w);
+    REGIONS.forEach(([, w], i) => geo[i] += lt * w);
+    COUNTRIES.forEach(([, w], i) => ctry[i] += lt * w);
+    const cn = l.resolved || l.utm.utm_campaign;
+    const c = campaigns[cn] || (campaigns[cn] = { name: cn, source: l.utm.utm_source, medium: l.utm.utm_medium, clicks: 0, unique: 0, prev: 0, inapp: 0 });
+    c.clicks += lt; c.unique += lu; c.prev += lp; c.inapp += lt * INAPP_IDX.reduce((s, i) => s + prof.br[i], 0);
+  });
+  const inapp = INAPP_IDX.reduce((s, i) => s + br[i], 0);
+  return { days, total, unique, prevTotal, inapp, bots: Math.round(total * 0.061), os, br, ref: Object.entries(ref).sort((a, b) => b[1] - a[1]), campaigns: Object.values(campaigns).sort((a, b) => b.clicks - a.clicks), geo, ctry,
+    geoRows: REGIONS.map(([n], i) => [n, geo[i]]), ctryRows: COUNTRIES.map(([n], i) => [n, ctry[i]]) };
+}
+
+const INITIAL_PRESETS = [
+  { id: 'p1', name: 'Meta_DPA_再行銷', dpa: true, utm: U('facebook', 'paid_social', '{{campaign.name}}', '{{product.id}}', '{{adset.name}}') },
+  { id: 'p2', name: 'Meta_DPA_新客', dpa: true, utm: U('facebook', 'paid_social', '{{campaign.name}}', '{{product.id}}', '{{placement}}') },
+  { id: 'p3', name: 'Google_PMax', dpa: true, utm: U('google', 'cpc', '{campaignid}', '{creative}', '{keyword}') },
+  { id: 'p4', name: 'LINE_官方帳號推播', dpa: false, utm: U('line', 'social_push', 'line_oa_push', 'flex_card') },
+  { id: 'p5', name: 'EDM_電子報', dpa: false, utm: U('newsletter', 'email', 'edm_weekly', 'hero_cta') },
+];
+
+/* ───────────────────────── QR code ───────────────────────── */
+function qrSvg({ text, ec, fg, bg, logo, logoImg, logoLetter }) {
+  const qr = qrcode(0, ec);
+  qr.addData(text || ' ');
+  qr.make();
+  const n = qr.getModuleCount(), q = 4, size = n + q * 2;
+  let d = '';
+  for (let r = 0; r < n; r++) {
+    let c = 0;
+    while (c < n) {
+      if (qr.isDark(r, c)) { let s = c; while (c < n && qr.isDark(r, c)) c++; d += `M${s + q} ${r + q}h${c - s}v1h${-(c - s)}z`; } else c++;
+    }
+  }
+  let logoSvg = '';
+  if (logo !== 'none') {
+    const L = Math.round(n * 0.22), x = (size - L) / 2;
+    logoSvg = `<rect x="${x - 0.8}" y="${x - 0.8}" width="${L + 1.6}" height="${L + 1.6}" rx="${L * 0.22}" fill="${bg}"/>`;
+    if (logo === 'upload' && logoImg) logoSvg += `<image href="${logoImg}" x="${x}" y="${x}" width="${L}" height="${L}" preserveAspectRatio="xMidYMid meet"/>`;
+    else logoSvg += `<rect x="${x}" y="${x}" width="${L}" height="${L}" rx="${L * 0.2}" fill="${fg}"/><text x="${size / 2}" y="${size / 2 + L * 0.2}" text-anchor="middle" font-family="Noto Sans TC, sans-serif" font-weight="700" font-size="${L * 0.6}" fill="${bg}">${logoLetter}</text>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/><path d="${d}" fill="${fg}"/>${logoSvg}</svg>`;
+}
+function luminance(hex) {
+  const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+}
+const contrast = (a, b) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+
+function QRPanel({ url, label, notify }) {
+  const [ec, setEc] = useState('Q');
+  const [fg, setFg] = useState('#0b6b62');
+  const [bg, setBg] = useState('#ffffff');
+  const [logo, setLogo] = useState('builtin');
+  const [logoImg, setLogoImg] = useState('');
+  const svg = useMemo(() => { try { return qrSvg({ text: url, ec, fg, bg, logo, logoImg, logoLetter: (CFG.brandLetter || 'B') }); } catch (e) { return ''; } }, [url, ec, fg, bg, logo, logoImg]);
+  const ratio = contrast(fg, bg);
+  const weak = logo !== 'none' && (ec === 'L' || ec === 'M');
+  const dark = luminance(fg) > luminance(bg);
+
+  const [dl, setDl] = useState(null);
+  useEffect(() => {
+    let on = true;
+    const p = window.claude && window.claude.use ? window.claude.use('downloads') : Promise.resolve(null);
+    Promise.resolve(p).then((d) => { if (on) setDl(d || null); }).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const save = async (data, filename, okMsg) => {
+    if (!dl) {
+      if (window.claude && window.claude.use) { notify('此檢視環境無法下載檔案'); return; }
+      try {
+        const blob = data instanceof Blob ? data : new Blob([data], { type: 'image/svg+xml' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); notify(okMsg);
+      } catch (e) { notify('下載失敗'); }
+      return;
+    }
+    try { await dl.save({ filename, data }); notify(okMsg); }
+    catch (e) { if (!e || e.code !== 'declined') notify('無法下載：' + ((e && (e.message || e.code)) || '未知錯誤')); }
+  };
+  const dlSvg = async () => {
+    if (dl || !(window.claude && window.claude.use)) { await save(svg, 'qr-' + label + '.svg', 'SVG 已儲存'); return; }
+    try { await navigator.clipboard.writeText(svg); notify('無法下載，已複製 SVG 原始碼到剪貼簿'); } catch (e) { notify('此檢視環境無法下載檔案'); }
+  };
+  const dlPng = () => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = c.height = 2048;
+      const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0, 2048, 2048);
+      c.toBlob(async (b) => {
+        if (!b) return;
+        await save(b, 'qr-' + label + '-2048.png', 'PNG（2048px）已儲存');
+      }, 'image/png');
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  };
+  const onFile = (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader(); r.onload = () => { setLogoImg(r.result); setLogo('upload'); if (ec === 'L' || ec === 'M') setEc('H'); }; r.readAsDataURL(f);
+  };
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="eyebrow">QR Code 即時預覽</div>
+        <span className="pill mute mono">{ec === 'L' ? '7' : ec === 'M' ? '15' : ec === 'Q' ? '25' : '30'}% 容錯</span>
+      </div>
+      <div className="flex justify-center rounded-lg p-3" style={{ background: 'var(--surface2)' }}>
+        <div style={{ width: 220, maxWidth: '100%', aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: svg }} role="img" aria-label="短網址 QR Code" />
+      </div>
+      <div className="grid gap-3 mt-4">
+        <div>
+          <div className="label mb-1">容錯率</div>
+          <div className="seg w-full" role="group" aria-label="容錯率">
+            {['L', 'M', 'Q', 'H'].map((k) => <button key={k} className="flex-1" aria-pressed={ec === k} onClick={() => setEc(k)}>{k}</button>)}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><div className="label mb-1">品牌主色</div>
+            <div className="flex items-center gap-2"><input id="qr-fg" type="color" value={fg} onChange={(e) => setFg(e.target.value)} aria-label="QR 前景色" /><span className="mono text-xs text-[color:var(--muted)]">{fg}</span></div></div>
+          <div><div className="label mb-1">背景色</div>
+            <div className="flex items-center gap-2"><input id="qr-bg" type="color" value={bg} onChange={(e) => setBg(e.target.value)} aria-label="QR 背景色" /><span className="mono text-xs text-[color:var(--muted)]">{bg}</span></div></div>
+        </div>
+        <div>
+          <div className="label mb-1">中間 Logo</div>
+          <div className="flex flex-wrap gap-2 items-center">
+            {[['none', '無'], ['builtin', '品牌字標'], ['upload', '上傳圖片']].map(([k, t]) =>
+              <button key={k} className={'chip' + (logo === k ? ' on' : '')} onClick={() => k === 'upload' ? (logoImg ? setLogo('upload') : document.getElementById('logo-file').click()) : setLogo(k)}>{t}</button>)}
+            <input id="logo-file" type="file" accept="image/*" hidden onChange={onFile} />
+          </div>
+        </div>
+        {weak && <div className="pill warn" style={{ borderRadius: 8, alignItems: 'flex-start' }}><Icon name="AlertTriangle" size={14} style={{ marginTop: 3 }} /><span>嵌入 Logo 會遮住資料區，建議容錯率 Q 或 H，否則部分手機可能掃不出來。</span></div>}
+        {ratio < 3 && <div className="pill bad" style={{ borderRadius: 8, alignItems: 'flex-start' }}><Icon name="AlertTriangle" size={14} style={{ marginTop: 3 }} /><span>前景與背景對比僅 {ratio.toFixed(1)}:1，掃描成功率會下降。建議 4:1 以上。</span></div>}
+        {ratio >= 3 && dark && <div className="pill warn" style={{ borderRadius: 8, alignItems: 'flex-start' }}><Icon name="Info" size={14} style={{ marginTop: 3 }} /><span>前景比背景亮（反相 QR），部分舊版掃描器無法辨識。</span></div>}
+        <div className="grid grid-cols-2 gap-2">
+          <button className="btn" onClick={dlPng}><Icon name="Download" />PNG 2048px</button>
+          <button className="btn" onClick={dlSvg}><Icon name="Download" />SVG 向量</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Small UI ───────────────────────── */
+function CopyBtn({ text, notify, label = '複製' }) {
+  const [ok, setOk] = useState(false);
+  const go = async (e) => {
+    e && e.stopPropagation();
+    try { await navigator.clipboard.writeText(text); }
+    catch (err) { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) {} t.remove(); }
+    setOk(true); notify && notify('已複製'); setTimeout(() => setOk(false), 1400);
+  };
+  return <button className="btn sm" onClick={go} aria-label={label}><Icon name={ok ? 'Check' : 'Copy'} size={14} />{label}</button>;
+}
+function StatusPill({ status }) {
+  const m = { active: ['ok', '啟用中'], paused: ['mute', '已暫停'] }[status];
+  return <span className={'pill ' + m[0]}>{m[1]}</span>;
+}
+function Spark({ values, color = 'var(--s1)' }) {
+  const w = 84, h = 26, max = Math.max(...values, 1);
+  const pts = values.map((v, i) => [i * (w - 4) / (values.length - 1) + 2, h - 3 - (v / max) * (h - 8)]);
+  const last = pts[pts.length - 1];
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r="3" fill={color} stroke="var(--surface)" strokeWidth="2" />
+    </svg>
+  );
+}
+
+/* ───────────────────────── Page 1: Builder ───────────────────────── */
+function CreatePage({ domains, links, presets, setPresets, addLink, notify }) {
+  const [dpa, setDpa] = useState(!REAL);
+  const [base, setBase] = useState(REAL ? '' : 'https://www.brand.com/collections/double11');
+  const [utm, setUtm] = useState(REAL ? U('', '', '') : INITIAL_PRESETS[0].utm);
+  const [activePreset, setActivePreset] = useState(REAL ? null : 'p1');
+  const [focusKey, setFocusKey] = useState('utm_content');
+  const activeDomains = domains.filter((d) => d.dns === 'verified' && d.ssl === 'active');
+  const [domain, setDomain] = useState(() => (activeDomains[0] ? activeDomains[0].host : 'go.brand.com'));
+  const [slugMode, setSlugMode] = useState('auto');
+  const [autoSlug, setAutoSlug] = useState(() => randomSlug());
+  const [custom, setCustom] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [created, setCreated] = useState(null);
+
+  const set = (k, v) => { setUtm((u) => ({ ...u, [k]: v })); setActivePreset(null); };
+  const applyPreset = (p) => { setUtm(p.utm); setDpa(p.dpa); setActivePreset(p.id); notify('已套用範本：' + p.name); };
+  const insertMacro = (m) => { set(focusKey, (utm[focusKey] || '') + m); };
+
+  const longUrl = buildUtmUrl(base, utm);
+  const params = buildUtmParams(utm).join('&');
+  const passThrough = buildPassThrough(utm);
+  const slug = slugMode === 'auto' ? autoSlug : normSlug(custom);
+  const slugErr = useMemo(() => {
+    if (slugMode === 'auto') return '';
+    if (!slug) return '請輸入自訂後綴';
+    if (!SLUG_RE.test(slug)) return '可使用中文、英數、底線與連字號，長度 2–50 字元，不可含空白或標點';
+    if (RESERVED.includes(slug.toLowerCase())) return '這是系統保留字，請換一個';
+    if (links.some((l) => l.domain === domain && slugKey(l.slug) === slugKey(slug))) return domain + '/' + slug + ' 已被使用';
+    return '';
+  }, [slug, slugMode, domain, links]);
+  const isLpurl = /^\{lpurl\}/.test(base.trim());
+  const shortUrl = 'https://' + domain + '/' + (slug || '…');                                   // 中文照原樣顯示
+  const shortEnc = 'https://' + domain + '/' + (slug ? encodeURIComponent(slug) : '…');        // 編碼版，貼到廣告後台或 QR 較保險
+  const suffix = dpa && passThrough ? '?' + passThrough : '';
+  const adShortUrl = shortUrl + suffix;
+  const adShortEnc = shortEnc + suffix;
+  const macroCount = [base, ...UTM_KEYS.map((k) => utm[k] || '')].reduce((n, x) => n + countMacros(x), 0);
+  const [undo, setUndo] = useState(null);
+  const clearMacros = () => {
+    setUndo({ base, utm, activePreset, n: macroCount });
+    setBase(stripMacrosUrl(base));
+    setUtm(Object.fromEntries(UTM_KEYS.map((k) => [k, stripMacros(utm[k] || '')])));
+    setActivePreset(null);
+    notify('已清除 ' + macroCount + ' 個巨集');
+  };
+  const restoreMacros = () => { if (!undo) return; setBase(undo.base); setUtm(undo.utm); setActivePreset(undo.activePreset); setUndo(null); };
+  const missing = ['utm_source', 'utm_medium', 'utm_campaign'].filter((k) => !utm[k] || !utm[k].trim());
+  const lint = [];
+  UTM_KEYS.forEach((k) => (utm[k] || '').split(MACRO_RE).forEach((seg, i) => {
+    if (i % 2) return;
+    if (/[A-Z]/.test(seg) && !lint.includes('uc')) lint.push('uc');
+    if (/\s/.test(seg.trim()) && !lint.includes('sp')) lint.push('sp');
+    if (/[^\x00-\x7F]/.test(seg) && !lint.includes('cjk')) lint.push('cjk');
+  }));
+  const baseOk = isLpurl || /^https?:\/\/[^\s]+\.[^\s]+/.test(base.trim());
+  const canCreate = baseOk && !missing.length && !slugErr && !isLpurl && !saving;
+
+  const create = () => {
+    setSaving(true);
+    setTimeout(() => {
+      const l = { id: Date.now(), created: ymd(TODAY), createdAt: Date.now(), domain, slug, base, utm, dpa, status: 'active', age: 0, daily: 0, uniq: .7, profile: utm.utm_source === 'line' ? 'line' : utm.utm_source === 'google' ? 'google' : utm.utm_source === 'newsletter' ? 'newsletter' : utm.utm_source === 'instagram' ? 'instagram' : 'facebook', isNew: true };
+      addLink(l); setCreated(l); setSaving(false); setAutoSlug(randomSlug()); setCustom('');
+      notify('已建立 ' + domain + '/' + slug);
+    }, 450);
+  };
+  const savePreset = () => {
+    const name = presetName.trim(); if (!name) return;
+    const p = { id: 'u' + Date.now(), name, dpa, utm: { ...utm } };
+    setPresets([...presets, p]); setActivePreset(p.id); setPresetName(''); notify('範本已儲存：' + name);
+  };
+
+  const field = (k, label, ph, req) => (
+    <div key={k}>
+      <label className="label flex items-center gap-1" htmlFor={k}><span className="mono">{k}</span>{req && <span style={{ color: 'var(--bad)' }}>*</span>}<span className="font-normal"> · {label}</span></label>
+      <input id={k} className={'input mono mt-1'} value={utm[k] || ''} placeholder={ph} onFocus={() => setFocusKey(k)} onChange={(e) => set(k, e.target.value)} spellCheck={false} autoComplete="off" />
+    </div>
+  );
+
+  return (
+    <div className="grid-create">
+      <div className="grid gap-5 min-w-0">
+        <section className="card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-bold">1. 目的地與 UTM 參數</h2>
+              <p className="text-[color:var(--muted)] text-[13px]">填入落地頁，系統自動組出帶參數的完整網址。</p>
+            </div>
+            <div className="seg" role="group" aria-label="模式">
+              <button aria-pressed={!dpa} onClick={() => setDpa(false)}>標準模式</button>
+              <button aria-pressed={dpa} onClick={() => setDpa(true)}>DPA 動態廣告</button>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="label mb-2 flex items-center gap-1"><Icon name="Bookmark" size={13} />常用範本（一鍵套用）</div>
+            <div className="flex flex-wrap gap-2">
+              {presets.map((p) => <button key={p.id} className={'chip' + (activePreset === p.id ? ' on' : '')} onClick={() => applyPreset(p)}>{p.dpa && <Icon name="Zap" size={12} />}{p.name}</button>)}
+            </div>
+          </div>
+
+          <label className="label" htmlFor="base">落地頁網址（Destination URL）</label>
+          <input id="base" className="input mono mt-1 mb-1" value={base} onChange={(e) => setBase(e.target.value)} placeholder="https://www.brand.com/collections/…" spellCheck={false} />
+          {!baseOk && base && <p className="text-xs" style={{ color: 'var(--bad)' }}>請輸入以 http:// 或 https:// 開頭的完整網址。</p>}
+          {isLpurl && <p className="text-xs" style={{ color: 'var(--warn)' }}>偵測到 {'{lpurl}'}：這是 Google Ads 追蹤範本，直接貼到「追蹤範本」欄位即可，不需要縮網址。</p>}
+
+          <div className="grid sm:grid-cols-2 gap-3 mt-4">
+            {field('utm_source', '流量來源', 'facebook', true)}
+            {field('utm_medium', '行銷媒介', 'paid_social', true)}
+            {field('utm_campaign', '活動名稱', dpa ? '{{campaign.name}}' : 'double11_sale', true)}
+            {field('utm_term', '關鍵字 / 受眾', dpa ? '{{adset.name}}' : 'running_shoes')}
+            <div className="sm:col-span-2">{field('utm_content', '素材 / 商品', dpa ? '{{product.id}}' : 'banner_a')}</div>
+          </div>
+
+          {lint.length > 0 && (
+            <div className="mt-3 text-xs grid gap-1" style={{ color: 'var(--warn)' }}>
+              {lint.includes('uc') && <div className="flex gap-1 items-center"><Icon name="AlertTriangle" size={13} />含大寫：GA4 會把 Facebook 與 facebook 視為不同來源，建議統一小寫。</div>}
+              {lint.includes('sp') && <div className="flex gap-1 items-center"><Icon name="AlertTriangle" size={13} />含空白：會被編碼成 %20，建議改用底線。</div>}
+              {lint.includes('cjk') && <div className="flex gap-1 items-center"><Icon name="Info" size={13} />含中文：會被百分比編碼，報表仍可讀取，但網址會變長。</div>}
+            </div>
+          )}
+
+          {!dpa && macroCount > 0 && (
+            <div className="mt-3 rounded-lg p-3 flex flex-wrap items-center gap-2 text-[13px]" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>
+              <Icon name="AlertTriangle" size={14} />
+              <span>偵測到 {macroCount} 個巨集。標準模式的廣告不會替換它們，網址會留著大括號。</span>
+              <button className="btn sm ml-auto" onClick={clearMacros}><Icon name="Eraser" size={14} />清除巨集</button>
+            </div>
+          )}
+          {undo && (
+            <div className="mt-3 rounded-lg px-3 py-2 flex items-center gap-2 text-[13px]" style={{ background: 'var(--surface2)' }}>
+              <Icon name="Eraser" size={14} />已清除 {undo.n} 個巨集
+              <button className="btn sm ml-auto" onClick={restoreMacros}>復原</button>
+            </div>
+          )}
+          {dpa && (
+            <div className="mt-4 rounded-lg p-3" style={{ background: 'var(--macro-soft)' }}>
+              <div className="flex flex-wrap items-center gap-2 mb-2" style={{ color: 'var(--macro)' }}>
+                <Icon name="Zap" size={14} /><span className="font-bold text-[13px]">DPA 巨集變數</span>
+                <span className="text-xs">點擊插入到目前欄位（<span className="mono">{focusKey}</span>）。大括號不會被轉義成 %7B%7D。</span>
+                <button className="btn sm ml-auto" onClick={clearMacros} disabled={!macroCount} style={{ color: 'var(--fg)' }}><Icon name="Eraser" size={14} />清除巨集{macroCount ? '（' + macroCount + '）' : ''}</button>
+              </div>
+              {Object.entries(MACROS).map(([g, arr]) => (
+                <div key={g} className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                  <span className="label w-20 flex-none">{g}</span>
+                  {arr.map((m) => <button key={m} className="chip macro" onClick={() => insertMacro(m)}>{m}</button>)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
+            <input id="preset-name" className="input" style={{ maxWidth: 240 }} placeholder="範本名稱，例如 TikTok_DPA" value={presetName} onChange={(e) => setPresetName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && savePreset()} />
+            <button className="btn" onClick={savePreset} disabled={!presetName.trim()}><Icon name="Save" />儲存為範本</button>
+          </div>
+        </section>
+
+        <section className="card p-5">
+          <h2 className="text-lg font-bold mb-1">2. 短網址設定</h2>
+          <p className="text-[color:var(--muted)] text-[13px] mb-4">選擇品牌網域，使用隨機短碼或自訂專屬後綴。</p>
+          <div className="grid sm:grid-cols-[220px_minmax(0,1fr)] gap-4">
+            <div>
+              <label className="label" htmlFor="domain">品牌網域</label>
+              <select id="domain" className="input mt-1" value={domain} onChange={(e) => setDomain(e.target.value)}>
+                {activeDomains.map((d) => <option key={d.host} value={d.host}>{d.host}{d.isDefault ? '（預設）' : ''}</option>)}
+              </select>
+              <p className="text-xs mt-1 text-[color:var(--faint)]">僅列出 DNS 與 SSL 皆已啟用的網域。</p>
+            </div>
+            <div>
+              <div className="label mb-1">短碼後綴</div>
+              <div className="seg mb-2" role="group" aria-label="後綴模式">
+                <button aria-pressed={slugMode === 'auto'} onClick={() => setSlugMode('auto')}>自動隨機</button>
+                <button aria-pressed={slugMode === 'custom'} onClick={() => setSlugMode('custom')}>自訂後綴</button>
+              </div>
+              {slugMode === 'auto' ? (
+                <div className="flex gap-2">
+                  <div className="input mono flex items-center" aria-live="polite">{autoSlug}</div>
+                  <button className="btn" onClick={() => setAutoSlug(randomSlug())} aria-label="重新產生"><Icon name="Shuffle" />重新產生</button>
+                </div>
+              ) : (
+                <>
+                  <input id="custom-slug" className="input mono" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="例如 養成水煮蛋肌 或 d11-sale" spellCheck={false} />
+                  <p className="text-xs mt-1" style={{ color: slugErr ? 'var(--bad)' : custom ? 'var(--ok)' : 'var(--faint)' }}>{slugErr || (custom ? '可以使用' : '中文、英數、底線、連字號，2–50 字元，英文不分大小寫')}</p>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <aside className="grid gap-5 sticky-col min-w-0">
+        <section className="card p-4 grid gap-3">
+          <div className="eyebrow">輸出結果</div>
+          <div>
+            <div className="label mb-1">完整網址（含 UTM）</div>
+            {longUrl ? <ColoredUrl url={longUrl} /> : <div className="urlbox text-[color:var(--faint)]">請先填入落地頁網址</div>}
+            <div className="mt-2 flex gap-2 flex-wrap items-center"><CopyBtn text={longUrl} notify={notify} />
+              {hasMacro(longUrl) && <span className="pill" style={{ background: 'var(--macro-soft)', color: 'var(--macro)' }}>巨集 {'{ }'} 已原樣保留</span>}</div>
+          </div>
+          {dpa && (
+            <div>
+              <div className="label mb-1">URL 參數字串（貼到 Meta「網址參數」/ Google「Final URL suffix」）</div>
+              <ColoredUrl url={params || '（尚無參數）'} />
+              <div className="mt-2"><CopyBtn text={params} notify={notify} /></div>
+            </div>
+          )}
+          {!isLpurl && (
+            <div>
+              <div className="label mb-1">{dpa && passThrough ? '短網址（投放用，帶巨集）' : '短網址'}</div>
+              <div className="urlbox" style={{ fontSize: 13.5, fontWeight: 600 }}>
+                {dpa && passThrough ? <ColoredUrl url={adShortUrl} /> : shortUrl}
+              </div>
+              {dpa && passThrough && <p className="text-xs mt-1.5 text-[color:var(--muted)]">廣告平台會替換 <span className="mono">?</span> 後的巨集；轉址時系統把這些參數合併進目的地網址。</p>}
+              <div className="mt-2 flex gap-2 flex-wrap"><CopyBtn text={adShortUrl} notify={notify} label="複製短網址" />
+                {slug && adShortEnc !== adShortUrl && <CopyBtn text={adShortEnc} notify={notify} label="複製編碼版" />}</div>
+              {slug && hasNonAscii(slug) && <p className="text-xs mt-1.5 text-[color:var(--muted)]">中文短碼貼到 LINE 或廣告後台時，若連結被截斷，請改用「複製編碼版」。QR Code 已自動使用編碼版。</p>}
+            </div>
+          )}
+          <button className="btn primary w-full" disabled={!canCreate} onClick={create}>
+            {saving ? <Icon name="Loader2" className="spin" /> : <Icon name="Link2" />}{saving ? '建立中…' : '建立短網址'}
+          </button>
+          {!canCreate && !saving && (
+            <p className="text-xs text-[color:var(--muted)]">
+              {isLpurl ? '{lpurl} 追蹤範本不需要短網址。' : !baseOk ? '請輸入有效的落地頁網址。' : missing.length ? '還需填寫：' + missing.join('、') : slugErr}
+            </p>
+          )}
+          {created && (
+            <div className="rounded-lg p-3 flex items-start gap-2" style={{ background: 'var(--ok-soft)', color: 'var(--ok)' }}>
+              <Icon name="CheckCircle2" size={16} style={{ marginTop: 2 }} />
+              <div className="text-[13px]">已建立 <span className="mono font-medium">{created.domain}/{created.slug}</span>，可到「連結管理」查看。</div>
+            </div>
+          )}
+        </section>
+        {!isLpurl && <QRPanel url={adShortEnc} label={slug || 'link'} notify={notify} />}
+      </aside>
+    </div>
+  );
+}
+
+/* ───────────────────────── Page 2: Links ───────────────────────── */
+function LinksPage({ links, setLinks, domains, openAnalytics, notify, cloudRows }) {
+  const [q, setQ] = useState('');
+  const [fd, setFd] = useState('all');
+  const [fs, setFs] = useState('all');
+  const [sel, setSel] = useState(null);
+  const range = [addDays(TODAY, -29), TODAY];
+  const rows = useMemo(() => links.map((l) => {
+    const s = REAL ? realSeries(l, cloudRows) : seriesOf(l); const last30 = s.slice(-30);
+    const t7 = s.slice(-7).reduce((a, p) => a + p.clicks, 0);
+    return { ...l, clicks: last30.reduce((a, p) => a + p.clicks, 0), unique: last30.reduce((a, p) => a + p.unique, 0), spark: s.slice(-14).map((p) => p.clicks), t7 };
+  }).filter((l) => (fd === 'all' || l.domain === fd) && (fs === 'all' || l.status === fs) &&
+    (!q || (l.domain + '/' + l.slug + l.utm.utm_campaign + l.base).toLowerCase().includes(q.toLowerCase()))), [links, q, fd, fs, cloudRows]);
+  const selected = links.find((l) => l.id === sel);
+  const toggle = (id) => setLinks(links.map((l) => l.id === id ? { ...l, status: l.status === 'active' ? 'paused' : 'active' } : l));
+  const remove = (id) => { setLinks(links.filter((l) => l.id !== id)); setSel(null); notify('已刪除短網址'); };
+  const [confirmDel, setConfirmDel] = useState(false);
+  useEffect(() => setConfirmDel(false), [sel]);
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1" style={{ minWidth: 220, maxWidth: 420 }}>
+          <Icon name="Search" size={15} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--faint)' }} />
+          <input id="link-search" className="input" style={{ paddingLeft: 32 }} placeholder="搜尋短碼、活動名稱或落地頁" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <select id="filter-domain" className="input" style={{ width: 170 }} value={fd} onChange={(e) => setFd(e.target.value)} aria-label="網域篩選">
+          <option value="all">所有網域</option>{domains.filter((d) => d.ssl === 'active').map((d) => <option key={d.host}>{d.host}</option>)}
+        </select>
+        <select id="filter-status" className="input" style={{ width: 130 }} value={fs} onChange={(e) => setFs(e.target.value)} aria-label="狀態篩選">
+          <option value="all">所有狀態</option><option value="active">啟用中</option><option value="paused">已暫停</option>
+        </select>
+        <span className="text-[color:var(--muted)] text-[13px] ml-auto">{rows.length} 筆 · 點擊數為近 30 天</span>
+      </div>
+      <div className="grid gap-4" style={{ gridTemplateColumns: selected ? 'minmax(0,1fr) minmax(0,380px)' : 'minmax(0,1fr)' }}>
+        <div className="card scroll-x" style={{ minWidth: 0 }}>
+          <table className="t" style={{ minWidth: 760 }}>
+            <thead><tr><th>短網址</th><th>活動 / 來源</th><th style={{ textAlign: 'right' }}>總點擊</th><th style={{ textAlign: 'right' }}>不重複</th><th>近 14 天</th><th>狀態</th></tr></thead>
+            <tbody>
+              {rows.map((l) => (
+                <tr key={l.id} className={'row' + (sel === l.id ? ' sel' : '')} onClick={() => setSel(l.id === sel ? null : l.id)}>
+                  <td>
+                    <div className="mono font-medium" style={{ fontSize: 13 }}>{l.domain}/<span style={{ color: 'var(--accent)' }}>{l.slug}</span></div>
+                    <div className="text-xs text-[color:var(--faint)] mono truncate" style={{ maxWidth: 260 }}>{l.base.replace(/^https?:\/\//, '')}</div>
+                  </td>
+                  <td>
+                    <div className="mono text-[12.5px]" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.utm.utm_campaign}</div>
+                    <div className="flex gap-1.5 mt-0.5"><span className="pill mute">{l.utm.utm_source}</span><span className="pill mute">{l.utm.utm_medium}</span>{l.dpa && <span className="pill" style={{ background: 'var(--macro-soft)', color: 'var(--macro)' }}>DPA</span>}</div>
+                  </td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(l.clicks)}</td>
+                  <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt(l.unique)}</td>
+                  <td><Spark values={l.spark} /></td>
+                  <td><StatusPill status={l.status} /></td>
+                </tr>
+              ))}
+              {!rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>{REAL && !links.length ? '還沒有短網址。到「建立短網址」新增第一條。' : '沒有符合條件的短網址'}</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        {selected && <LinkDetail l={selected} onClose={() => setSel(null)} toggle={toggle} remove={remove} confirmDel={confirmDel} setConfirmDel={setConfirmDel} openAnalytics={openAnalytics} notify={notify} />}
+      </div>
+    </div>
+  );
+}
+function LinkDetail({ l, onClose, toggle, remove, confirmDel, setConfirmDel, openAnalytics, notify }) {
+  const longUrl = buildUtmUrl(l.base, l.utm);
+  const pass = l.dpa ? buildPassThrough(l.utm) : '';
+  const short = 'https://' + l.domain + '/' + l.slug + (pass ? '?' + pass : '');
+  const shortEnc = 'https://' + l.domain + '/' + encodeURIComponent(l.slug) + (pass ? '?' + pass : '');
+  const svg = useMemo(() => { try { return qrSvg({ text: shortEnc, ec: 'Q', fg: '#0b6b62', bg: '#ffffff', logo: 'builtin', logoLetter: (CFG.brandLetter || 'B') }); } catch (e) { return ''; } }, [shortEnc]);
+  return (
+    <div className="card p-4 grid gap-3 self-start min-w-0">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0"><div className="eyebrow">連結詳情</div><div className="mono font-bold break-all">{l.domain}/{l.slug}</div></div>
+        <button className="btn sm" onClick={onClose} aria-label="關閉"><Icon name="X" size={14} /></button>
+      </div>
+      <div className="flex gap-3 items-start">
+        <div style={{ width: 96, flex: 'none', borderRadius: 6, overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: svg }} />
+        <div className="grid gap-2 min-w-0">
+          <StatusPill status={l.status} />
+          <div className="flex gap-2 flex-wrap"><CopyBtn text={short} notify={notify} label="複製網址" />{shortEnc !== short && <CopyBtn text={shortEnc} notify={notify} label="編碼版" />}</div>
+        </div>
+      </div>
+      <div><div className="label mb-1">完整目的地</div><ColoredUrl url={longUrl} /></div>
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[13px]">
+        {UTM_KEYS.map((k) => l.utm[k] ? <React.Fragment key={k}><dt className="mono text-[color:var(--muted)]">{k}</dt><dd className="mono break-all">{hasMacro(l.utm[k]) ? <span style={{ color: 'var(--macro)' }}>{l.utm[k]}</span> : l.utm[k]}</dd></React.Fragment> : null)}
+      </dl>
+      <div className="grid grid-cols-2 gap-2">
+        <button className="btn primary" onClick={() => openAnalytics(l.id)}><Icon name="BarChart3" />查看成效</button>
+        <button className="btn" onClick={() => toggle(l.id)}><Icon name={l.status === 'active' ? 'Pause' : 'Play'} />{l.status === 'active' ? '暫停' : '啟用'}</button>
+      </div>
+      {!confirmDel ? <button className="btn sm" style={{ color: 'var(--bad)' }} onClick={() => setConfirmDel(true)}><Icon name="Trash2" size={14} />刪除</button>
+        : <div className="flex items-center gap-2 text-[13px]"><span>刪除後短碼會失效，確定嗎？</span><button className="btn sm" style={{ background: 'var(--bad)', color: '#fff', borderColor: 'var(--bad)' }} onClick={() => remove(l.id)}>確定刪除</button><button className="btn sm" onClick={() => setConfirmDel(false)}>取消</button></div>}
+    </div>
+  );
+}
+
+/* ───────────────────────── Page 3: Analytics ───────────────────────── */
+const SERIES = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)', 'var(--s6)'];
+function ChartTip({ active, payload, label, unit = '' }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', boxShadow: '0 4px 16px rgba(0,0,0,.18)', fontSize: 12.5 }}>
+      {label && <div className="mb-1" style={{ color: 'var(--muted)' }}>{label}</div>}
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2"><span className="legend-dot" style={{ background: p.color || p.payload.fill }} /><span>{p.name}</span><span className="num ml-auto pl-4 font-bold">{fmt(p.value)}{unit}</span></div>
+      ))}
+    </div>
+  );
+}
+function Kpi({ label, value, sub, delta, icon }) {
+  return (
+    <div className="card p-4">
+      <div className="flex items-center gap-2 label"><Icon name={icon} size={14} />{label}</div>
+      <div className="text-[28px] font-bold num mt-1 leading-tight">{value}</div>
+      <div className="text-xs mt-1 flex items-center gap-1.5">
+        {delta != null && <span className="pill" style={{ padding: '1px 7px', background: delta >= 0 ? 'var(--ok-soft)' : 'var(--bad-soft)', color: delta >= 0 ? 'var(--ok)' : 'var(--bad)' }}><Icon name={delta >= 0 ? 'ArrowUpRight' : 'ArrowDownRight'} size={12} />{Math.abs(delta * 100).toFixed(1)}%</span>}
+        <span className="text-[color:var(--muted)]">{sub}</span>
+      </div>
+    </div>
+  );
+}
+function DonutCard({ title, names, values, note }) {
+  const total = values.reduce((a, b) => a + b, 0) || 1;
+  const data = names.map((n, i) => ({ name: n, value: Math.round(values[i] || 0), fill: SERIES[i] })).filter((d) => d.value > 0);
+  return (
+    <div className="card p-4 min-w-0">
+      <div className="font-bold mb-0.5">{title}</div>
+      {note && <div className="text-xs text-[color:var(--muted)] mb-2">{note}</div>}
+      <div className="flex flex-wrap items-center gap-4">
+        <div style={{ width: 150, height: 150, flex: 'none' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="value" nameKey="name" innerRadius={44} outerRadius={72} paddingAngle={0} stroke="var(--surface)" strokeWidth={2} isAnimationActive={false}>
+                {data.map((d, i) => <Cell key={i} fill={d.fill} />)}
+              </Pie>
+              <Tooltip content={<ChartTip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <ul className="grid gap-1.5 flex-1 min-w-[150px]">
+          {names.map((n, i) => (
+            <li key={n} className="flex items-center gap-2 text-[13px]"><span className="legend-dot" style={{ background: SERIES[i] }} /><span>{n}</span><span className="ml-auto num font-medium">{pct((values[i] || 0) / total)}</span></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+function BarList({ rows, total, color = 'var(--s1)' }) {
+  const max = Math.max(...rows.map((r) => r[1]), 1);
+  return (
+    <ul className="grid gap-2.5">
+      {rows.map(([name, v]) => (
+        <li key={name}>
+          <div className="flex justify-between text-[13px] mb-1"><span className="truncate pr-2 mono" style={{ fontSize: 12.5 }}>{name}</span><span className="num flex-none"><b>{fmt(v)}</b> <span className="text-[color:var(--muted)]">{pct(v / total)}</span></span></div>
+          <div style={{ background: 'var(--surface2)', borderRadius: 4 }}><div className="bar" style={{ width: (v / max * 100) + '%', background: color }} /></div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+function AnalyticsPage({ links, linkId, setLinkId, cloudRows, cloudState, goCloud }) {
+  const [preset, setPreset] = useState('30');
+  const [from, setFrom] = useState(ymd(addDays(TODAY, -29)));
+  const [to, setTo] = useState(ymd(TODAY));
+  const [geoMode, setGeoMode] = useState('region');
+  const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d, 12); };
+  const range = useMemo(() => {
+    if (preset === 'custom') { let a = parse(from), b = parse(to); if (a > b) [a, b] = [b, a]; const lo = addDays(TODAY, -HISTORY); if (a < lo) a = lo; if (b > TODAY) b = TODAY; return [a, b]; }
+    return [addDays(TODAY, -(Number(preset) - 1)), TODAY];
+  }, [preset, from, to]);
+  const scope = linkId === 'all' ? links : links.filter((l) => l.id === linkId);
+  const A = useMemo(() => (REAL ? realAggregate(cloudRows, scope, range[0], range[1]) : aggregate(scope, range[0], range[1])), [scope, range, cloudRows]);
+  const spanDays = A.days.length;
+  const camp = A.campaigns;
+  const geoRows = (!REAL && geoMode === 'region') ? A.geoRows : A.ctryRows;
+  const tickGap = spanDays > 14 ? 40 : 10;
+
+  return (
+    <div className="grid gap-5">
+      {REAL && cloudState !== 'ok' && (
+        <div className="card p-4 flex flex-wrap items-center gap-3" style={{ background: 'var(--warn-soft)', color: 'var(--warn)', borderColor: 'transparent' }}>
+          <Icon name="Cloud" size={18} />
+          <div className="flex-1 min-w-[220px]"><b>尚未連接雲端儲存，沒有點擊資料可顯示。</b><div className="text-[13px]">連接後，點擊紀錄會存進你的 Google 雲端硬碟試算表，這裡才會有真實數據。</div></div>
+          <button className="btn" style={{ color: 'var(--fg)' }} onClick={goCloud}>前往設定</button>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="seg" role="group" aria-label="時間區間">
+          {[['7', '7 天'], ['30', '30 天'], ['custom', '自訂區間']].map(([k, t]) => <button key={k} aria-pressed={preset === k} onClick={() => setPreset(k)}>{t}</button>)}
+        </div>
+        {preset === 'custom' && (
+          <div className="flex items-center gap-2">
+            <input id="range-from" type="date" className="input" style={{ width: 150 }} value={from} min={ymd(addDays(TODAY, -HISTORY))} max={to} onChange={(e) => setFrom(e.target.value)} aria-label="開始日期" />
+            <span className="text-[color:var(--muted)]">至</span>
+            <input id="range-to" type="date" className="input" style={{ width: 150 }} value={to} min={from} max={ymd(TODAY)} onChange={(e) => setTo(e.target.value)} aria-label="結束日期" />
+          </div>
+        )}
+        <select id="analytics-link" className="input" style={{ width: 'min(100%, 300px)' }} value={String(linkId)} onChange={(e) => { const v = e.target.value; const f = links.find((l) => String(l.id) === v); setLinkId(v === 'all' || !f ? 'all' : f.id); }} aria-label="連結篩選">
+          <option value="all">全部短網址（{links.length}）</option>
+          {links.map((l) => <option key={l.id} value={l.id}>{l.domain}/{l.slug}</option>)}
+        </select>
+        <span className="text-[13px] text-[color:var(--muted)] ml-auto mono">{ymd(range[0])} → {ymd(range[1])}</span>
+      </div>
+
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+        <Kpi icon="MousePointerClick" label="總點擊數" value={fmt(A.total)} delta={A.prevTotal ? (A.total - A.prevTotal) / A.prevTotal : null} sub="較前一期間" />
+        <Kpi icon="Users" label="不重複點擊" value={fmt(A.unique)} sub={'不重複率 ' + pct(A.total ? A.unique / A.total : 0)} />
+        <Kpi icon="Smartphone" label="社群內建瀏覽器" value={pct(A.total ? A.inapp / A.total : 0)} sub="LINE / IG / Facebook" />
+        <Kpi icon="Bot" label="已過濾機器人點擊" value={fmt(A.bots)} sub="未計入上方數據" />
+      </div>
+
+      <section className="card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="font-bold">點擊趨勢</div>
+          <div className="flex gap-4 text-[13px]">
+            <span className="flex items-center gap-1.5"><span className="legend-dot" style={{ background: 'var(--s1)' }} />總點擊</span>
+            <span className="flex items-center gap-1.5"><span className="legend-dot" style={{ background: 'var(--s2)' }} />不重複點擊</span>
+          </div>
+        </div>
+        <div style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={A.days} margin={{ top: 8, right: 12, bottom: 0, left: -8 }}>
+              <CartesianGrid stroke="var(--line)" strokeDasharray="3 4" vertical={false} />
+              <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'var(--line)' }} minTickGap={tickGap} />
+              <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => (v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + 'k' : v)} width={44} />
+              <Tooltip content={<ChartTip />} cursor={{ stroke: 'var(--faint)', strokeWidth: 1 }} />
+              <Line type="monotone" dataKey="total" name="總點擊" stroke="var(--s1)" strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: 'var(--surface)', strokeWidth: 2 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="unique" name="不重複點擊" stroke="var(--s2)" strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: 'var(--surface)', strokeWidth: 2 }} isAnimationActive={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+        <DonutCard title="作業系統" names={OS_NAMES} values={A.os} />
+        <DonutCard title="瀏覽器 / 內建瀏覽器" names={BROWSER_NAMES} values={A.br} note="內建瀏覽器通常沒有登入狀態，結帳轉換率較低。" />
+      </div>
+
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+        <section className="card p-4 min-w-0">
+          <div className="font-bold mb-3">Referer 來源網域</div>
+          <BarList rows={A.ref.slice(0, 7)} total={A.total} color="var(--s1)" />
+        </section>
+        <section className="card p-4 min-w-0">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-bold">點擊地區</div>
+            {!REAL && <div className="seg" role="group" aria-label="地區層級"><button aria-pressed={geoMode === 'region'} onClick={() => setGeoMode('region')}>台灣縣市</button><button aria-pressed={geoMode === 'country'} onClick={() => setGeoMode('country')}>國家</button></div>}
+          </div>
+          <BarList rows={geoRows.sort((a, b) => b[1] - a[1])} total={A.total} color="var(--s3)" />
+        </section>
+      </div>
+
+      <section className="card scroll-x">
+        <div className="p-4 pb-2 font-bold">UTM Campaign 成效排行</div>
+        <table className="t" style={{ minWidth: 640 }}>
+          <thead><tr><th>#</th><th>utm_campaign</th><th>來源 / 媒介</th><th style={{ textAlign: 'right' }}>總點擊</th><th style={{ textAlign: 'right' }}>不重複</th><th style={{ textAlign: 'right' }}>內建瀏覽器</th><th style={{ textAlign: 'right' }}>較前期</th></tr></thead>
+          <tbody>
+            {camp.map((c, i) => {
+              const d = c.prev ? (c.clicks - c.prev) / c.prev : null;
+              return (
+                <tr key={c.name}>
+                  <td className="num text-[color:var(--muted)]">{i + 1}</td>
+                  <td className="mono" style={{ fontSize: 12.5 }}>{c.name}</td>
+                  <td><span className="pill mute">{c.source}</span> <span className="pill mute">{c.medium}</span></td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(c.clicks)}</td>
+                  <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt(c.unique)}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{pct(c.clicks ? c.inapp / c.clicks : 0, 0)}</td>
+                  <td className="num" style={{ textAlign: 'right', color: d == null ? 'var(--faint)' : d >= 0 ? 'var(--ok)' : 'var(--bad)' }}>{d == null ? '新活動' : (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%'}</td>
+                </tr>
+              );
+            })}
+            {!camp.length && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>此區間沒有資料</td></tr>}
+          </tbody>
+        </table>
+      </section>
+      <p className="text-xs text-[color:var(--faint)]">{REAL ? '資料來自你的 Google 試算表。點擊由網頁端記錄：連結預覽爬蟲不執行 JavaScript，本來就不會被記錄；會執行 JavaScript 的機器人則標記為機器人並排除。地區依瀏覽器時區推測，無法細分到縣市。' : '以上為示範數據。實際環境中，機器人與預覽爬蟲（Facebook External Hit、Line Preview 等）在寫入前即被排除。'}</p>
+    </div>
+  );
+}
+
+/* ───────────────────────── Page 4: Domains ───────────────────────── */
+const DNS_META = { verified: ['ok', 'CheckCircle2', 'DNS 已指向'], pending: ['warn', 'Clock', 'DNS 等待中'], error: ['bad', 'AlertTriangle', 'DNS 錯誤'] };
+const SSL_META = { active: ['ok', 'ShieldCheck', 'SSL 已啟用'], issuing: ['warn', 'Loader2', 'SSL 簽發中'], waiting: ['mute', 'Clock', '等待 DNS 驗證'] };
+function DomainsPage({ domains, setDomains, links, notify }) {
+  const [host, setHost] = useState('');
+  const [open, setOpen] = useState('link.brand.com.tw');
+  const [checking, setChecking] = useState(null);
+  const valid = /^([a-z0-9-]+\.)+[a-z]{2,}$/i.test(host.trim());
+  const dup = domains.some((d) => d.host === host.trim().toLowerCase());
+  const apex = (h) => h.split('.').length <= 2 || /\.(com|org|net)\.[a-z]{2}$/.test(h) && h.split('.').length <= 3;
+  const add = () => {
+    const h = host.trim().toLowerCase();
+    setDomains([...domains, { host: h, isDefault: false, dns: 'pending', ssl: 'waiting', cname: 'cname.waypoint.link', added: ymd(TODAY), fallback: 'https://www.brand.com' }]);
+    setHost(''); setOpen(h); notify('已新增 ' + h + '，請設定 DNS');
+  };
+  const verify = (h) => {
+    setChecking(h);
+    setTimeout(() => {
+      setDomains((ds) => ds.map((d) => d.host === h ? { ...d, dns: 'verified', ssl: 'issuing', found: undefined } : d));
+      setChecking(null); notify('DNS 驗證成功，開始簽發 SSL 憑證');
+      setTimeout(() => setDomains((ds) => ds.map((d) => d.host === h && d.ssl === 'issuing' ? { ...d, ssl: 'active' } : d)), 2600);
+    }, 1400);
+  };
+  const setDefault = (h) => setDomains(domains.map((d) => ({ ...d, isDefault: d.host === h })));
+  const steps = (d) => [['新增網域', true], ['設定 CNAME', d.dns === 'verified'], ['DNS 驗證', d.dns === 'verified'], ['簽發 SSL', d.ssl === 'active'], ['可用於短網址', d.dns === 'verified' && d.ssl === 'active']];
+
+  return (
+    <div className="grid gap-5">
+      {REAL && <PagesGuide domains={domains} links={links} notify={notify} />}
+      {!REAL && (<section className="card p-4">
+        <h2 className="font-bold text-lg mb-1">新增品牌網域</h2>
+        <p className="text-[13px] text-[color:var(--muted)] mb-3">建議使用子網域（例如 go.brand.com）。新增後依照下方指示在 DNS 服務商建立 CNAME。</p>
+        <div className="flex flex-wrap gap-2">
+          <input id="new-domain" className="input mono" style={{ maxWidth: 340 }} placeholder="go.yourbrand.com" value={host} onChange={(e) => setHost(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && valid && !dup && add()} spellCheck={false} />
+          <button className="btn primary" disabled={!valid || dup} onClick={add}><Icon name="Plus" />新增網域</button>
+        </div>
+        {host && !valid && <p className="text-xs mt-1" style={{ color: 'var(--bad)' }}>網域格式不正確，例如 go.brand.com。</p>}
+        {dup && <p className="text-xs mt-1" style={{ color: 'var(--bad)' }}>此網域已經存在。</p>}
+      </section>)}
+
+      {!REAL && (<div className="grid gap-3">
+        {domains.map((d) => {
+          const dm = DNS_META[d.dns], sm = SSL_META[d.ssl], isOpen = open === d.host;
+          const count = links.filter((l) => l.domain === d.host).length;
+          return (
+            <section key={d.host} className="card">
+              <button className="w-full flex flex-wrap items-center gap-x-4 gap-y-2 p-4 text-left" style={{ background: 'none', cursor: 'pointer' }} onClick={() => setOpen(isOpen ? null : d.host)} aria-expanded={isOpen}>
+                <Icon name="Globe" size={18} style={{ color: 'var(--accent)' }} />
+                <span className="mono font-bold">{d.host}</span>
+                {d.isDefault && <span className="pill" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>預設網域</span>}
+                <span className={'pill ' + dm[0]}><Icon name={dm[1]} size={13} />{dm[2]}</span>
+                <span className={'pill ' + sm[0]}><Icon name={sm[1]} size={13} className={d.ssl === 'issuing' ? 'spin' : ''} />{sm[2]}</span>
+                <span className="ml-auto text-[13px] text-[color:var(--muted)]">{count} 條短網址</span>
+                <Icon name="ChevronRight" size={16} style={{ transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }} />
+              </button>
+              {isOpen && (
+                <div className="p-4 pt-0 grid gap-4">
+                  <ol className="flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
+                    {steps(d).map(([t, done], i) => <li key={t} className="flex items-center gap-1.5" style={{ color: done ? 'var(--ok)' : 'var(--muted)' }}><Icon name={done ? 'CheckCircle2' : 'Clock'} size={14} />{t}</li>)}
+                  </ol>
+                  <div className="scroll-x rounded-lg" style={{ border: '1px solid var(--line)' }}>
+                    <table className="t" style={{ minWidth: 520 }}>
+                      <thead><tr><th>類型</th><th>主機名稱（Name）</th><th>指向（Value）</th><th>TTL</th><th /></tr></thead>
+                      <tbody>
+                        <tr>
+                          <td className="mono">{apex(d.host) ? 'ALIAS / ANAME' : 'CNAME'}</td>
+                          <td className="mono">{d.host.split('.')[0]}</td>
+                          <td className="mono">{d.cname}</td>
+                          <td className="mono">3600</td>
+                          <td><CopyBtn text={d.cname} notify={notify} /></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  {apex(d.host) && <p className="text-xs" style={{ color: 'var(--warn)' }}>根網域不能使用 CNAME。請改用 ALIAS / ANAME，或建議改用子網域（如 go.{d.host}）。</p>}
+                  {d.dns === 'pending' && d.found && (
+                    <div className="rounded-lg p-3 text-[13px]" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>
+                      偵測到 <span className="mono">{d.host}</span> 目前指向 <span className="mono">{d.found}</span>，與預期的 <span className="mono">{d.cname}</span> 不同。請修改現有記錄，不要同時保留 A 記錄。
+                    </div>
+                  )}
+                  {d.dns === 'pending' && !d.found && <p className="text-[13px] text-[color:var(--muted)]">尚未偵測到記錄。DNS 變更通常 5 分鐘到 48 小時內生效。</p>}
+                  {d.ssl === 'issuing' && <p className="text-[13px] text-[color:var(--muted)]">DNS 已驗證，正在透過 Let's Encrypt 簽發憑證，通常 1–5 分鐘完成。</p>}
+                  {d.ssl === 'active' && <p className="text-[13px] text-[color:var(--muted)]">憑證由 Let's Encrypt 簽發並自動續期，到期前 30 天更新。強制 HTTPS 已開啟。</p>}
+                  <div className="grid sm:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
+                    <div>
+                      <label className="label" htmlFor={'fb-' + d.host}>找不到短碼時導向（Fallback URL）</label>
+                      <input id={'fb-' + d.host} className="input mono mt-1" value={d.fallback} onChange={(e) => setDomains(domains.map((x) => x.host === d.host ? { ...x, fallback: e.target.value } : x))} />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {d.dns !== 'verified' && <button className="btn primary" onClick={() => verify(d.host)} disabled={checking === d.host}>{checking === d.host ? <Icon name="Loader2" className="spin" /> : <Icon name="RefreshCw" />}{checking === d.host ? '檢查中…' : '驗證 DNS'}</button>}
+                      {d.dns === 'verified' && d.ssl === 'active' && !d.isDefault && <button className="btn" onClick={() => setDefault(d.host)}>設為預設</button>}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>)}
+    </div>
+  );
+}
+
+function PagesGuide({ domains, links, notify }) {
+  const d = domains[0] || { host: '' };
+  const [account, repo] = (location.hostname.endsWith('.github.io') ? [location.hostname.split('.')[0], location.pathname.split('/')[1] || ''] : ['你的帳號', '你的 repo']);
+  const target = account + '.github.io';
+  return (
+    <section className="card p-5 grid gap-4">
+      <div>
+        <h2 className="font-bold text-lg mb-1">短網址網域</h2>
+        <p className="text-[13px] text-[color:var(--muted)]">目前短網址格式：<span className="mono">https://{d.host}/你的短碼</span>（已建立 {links.length} 條）。</p>
+      </div>
+      <div>
+        <div className="font-bold text-[13px] mb-2">改用自己的網域（例如 kafenhair.com）</div>
+        <ol className="grid gap-2 text-[13px] list-decimal pl-5">
+          <li>GitHub repo → <b>Settings → Pages → Custom domain</b>，填入網域，儲存，並勾選 <b>Enforce HTTPS</b>。</li>
+          <li>到 DNS 服務商建立記錄。子網域（建議，如 go.kafenhair.com）：<span className="mono">CNAME → {target}</span>。根網域（kafenhair.com）：四筆 A 記錄 <span className="mono">185.199.108.153 / .109.153 / .110.153 / .111.153</span>。</li>
+          <li>把網域填進 <span className="mono">config.js</span> 的 <span className="mono">shortDomain</span>，重新上傳，這裡的短網址就會改用新網域。</li>
+        </ol>
+        <p className="text-xs mt-2 text-[color:var(--muted)]">一個 GitHub Pages 站台只能綁一個自訂網域。需要多個品牌網域時，每個網域各用一個 repo，或改用附贈的後端版本。</p>
+      </div>
+      <div className="flex gap-2 flex-wrap"><CopyBtn text={target} notify={notify} label={'複製 ' + target} /></div>
+    </section>
+  );
+}
+
+/* ───────────────────────── App shell ───────────────────────── */
+/* ───────────────────────── Cloud (Google Apps Script) ───────────────────────── */
+async function gas(url, body) {
+  // 不帶自訂標頭，瀏覽器視為簡單請求（text/plain），不需要 CORS 預檢
+  const r = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+  if (!r.ok) throw new Error('伺服器回應 ' + r.status);
+  return r.json();
+}
+const toCloud = (l) => ({
+  slug: l.slug, domain: l.domain, destination: buildUtmUrl(l.base, l.utm), base: l.base,
+  utm_source: l.utm.utm_source || '', utm_medium: l.utm.utm_medium || '', utm_campaign: l.utm.utm_campaign || '',
+  utm_term: l.utm.utm_term || '', utm_content: l.utm.utm_content || '',
+  dpa: !!l.dpa, forward_query: !!l.dpa, status: l.status || 'active', created: l.createdAt || 0,
+});
+const fromCloud = (r) => ({
+  id: 'c-' + slugKey(r.slug), domain: r.domain, slug: String(r.slug), base: r.base,
+  utm: { utm_source: r.utm_source || '', utm_medium: r.utm_medium || '', utm_campaign: r.utm_campaign || '', utm_term: r.utm_term || '', utm_content: r.utm_content || '' },
+  dpa: !!r.dpa, status: r.status || 'active', createdAt: Number(r.created) || 0,
+});
+const presetOut = (p) => ({ id: p.id, name: p.name, dpa: !!p.dpa, utm: p.utm });
+const sigOf = (ls, ps) => JSON.stringify([ls.map(toCloud), ps.map(presetOut)]);
+
+function CloudPage({ url, setUrl, token, setToken, state, msg, connect, pushNow, reloadRows, autoSync, setAutoSync, links, rows, notify }) {
+  const [show, setShow] = useState(false);
+  const stateMeta = { off: ['mute', 'Cloud', '未連接'], loading: ['warn', 'Loader2', '連線中'], ok: ['ok', 'CheckCircle2', '已連接'], error: ['bad', 'AlertTriangle', '連線失敗'] }[state];
+  const exportJson = () => JSON.stringify({ links: links.map(toCloud) }, null, 2);
+  const copyCode = async () => {
+    try { const r = await fetch('cloud/Code.gs'); if (!r.ok) throw new Error(); await navigator.clipboard.writeText(await r.text()); notify('已複製 Code.gs'); }
+    catch (e) { notify('無法複製，請從 repo 的 cloud/Code.gs 開啟'); }
+  };
+  const dlJson = () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([exportJson()], { type: 'application/json' })); a.download = 'links.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  const recent = useMemo(() => rows.filter((r) => !r.bot).sort((a, b) => b.t - a.t).slice(0, 20), [rows]);
+  return (
+    <div className="grid gap-5">
+      <section className="card p-5 grid gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="font-bold text-lg">連線設定</h2>
+          <span className={'pill ' + stateMeta[0]}><Icon name={stateMeta[1]} size={13} className={state === 'loading' ? 'spin' : ''} />{stateMeta[2]}</span>
+          {state === 'ok' && msg && <a className="text-[13px] underline" style={{ color: 'var(--accent)' }} href={msg} target="_blank" rel="noopener">開啟雲端試算表</a>}
+        </div>
+        {state === 'error' && <div className="rounded-lg p-3 text-[13px]" style={{ background: 'var(--bad-soft)', color: 'var(--bad)' }}>{msg}</div>}
+        <div className="grid gap-3">
+          <div>
+            <label className="label" htmlFor="gas-url">Apps Script 網頁應用程式網址</label>
+            <input id="gas-url" className="input mono mt-1" value={url} onChange={(e) => setUrl(e.target.value.trim())} placeholder="https://script.google.com/macros/s/…/exec" spellCheck={false} />
+            <p className="text-xs mt-1 text-[color:var(--muted)]">轉址頁需要這個網址，請同時填進 config.js 的 appsScriptUrl，訪客的點擊才會被記錄。</p>
+          </div>
+          <div>
+            <label className="label" htmlFor="gas-token">管理密碼</label>
+            <div className="flex gap-2 mt-1">
+              <input id="gas-token" className="input mono" type={show ? 'text' : 'password'} value={token} onChange={(e) => setToken(e.target.value.trim())} placeholder="執行 setup() 後在執行紀錄中取得" autoComplete="off" spellCheck={false} />
+              <button className="btn" onClick={() => setShow(!show)}>{show ? '隱藏' : '顯示'}</button>
+            </div>
+            <p className="text-xs mt-1 text-[color:var(--muted)]">只會存在這個瀏覽器，不會上傳到 GitHub。</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="btn primary" onClick={() => connect()} disabled={state === 'loading'}><Icon name="RefreshCw" size={15} />連線並同步</button>
+          <button className="btn" onClick={() => pushNow(false)} disabled={state !== 'ok'}><Icon name="Upload" size={15} />立即儲存到雲端</button>
+          <button className="btn" onClick={reloadRows} disabled={state !== 'ok'}><Icon name="Download" size={15} />重新載入點擊資料</button>
+          <label className="flex items-center gap-2 text-[13px] ml-auto"><input id="autosync" type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />變更後自動儲存</label>
+        </div>
+      </section>
+
+      <section className="card p-5 grid gap-3">
+        <h2 className="font-bold text-lg">第一次設定（約 5 分鐘）</h2>
+        <ol className="grid gap-2 text-[13.5px] list-decimal pl-5">
+          <li>開啟 <a className="underline" style={{ color: 'var(--accent)' }} href="https://script.google.com/home/start" target="_blank" rel="noopener">script.google.com</a>，建立新專案。<button className="btn sm ml-2" onClick={copyCode}><Icon name="Copy" size={13} />複製 Code.gs</button> 後貼上，取代原本內容。</li>
+          <li>函式選單選 <span className="mono">setup</span>，按「執行」並授權。執行紀錄會顯示<b>管理密碼</b>，試算表會自動建在你的雲端資料夾。</li>
+          <li>部署 → 新增部署作業 → 網頁應用程式。執行身分「我」，誰可以存取「所有人」。複製網址。</li>
+          <li>網址填進上方與 <span className="mono">config.js</span>，密碼填進上方，按「連線並同步」。</li>
+        </ol>
+      </section>
+
+      <section className="card p-5 grid gap-3">
+        <div>
+          <h2 className="font-bold text-lg">加速轉址（選用）</h2>
+          <p className="text-[13px] text-[color:var(--muted)]">新連結會立即從雲端查到，但雲端查詢比網站自己的檔案慢。把下面的內容存成 <span className="mono">links.json</span> 放進 repo，轉址會更快。</p>
+        </div>
+        <div className="flex gap-2 flex-wrap"><CopyBtn text={exportJson()} notify={notify} label="複製 links.json" /><button className="btn sm" onClick={dlJson}><Icon name="Download" size={14} />下載 links.json</button></div>
+      </section>
+
+      <section className="card scroll-x">
+        <div className="p-4 pb-2 font-bold">最近 20 筆點擊</div>
+        <table className="t" style={{ minWidth: 560 }}>
+          <thead><tr><th>時間</th><th>短碼</th><th>來源</th><th>系統</th><th>瀏覽器</th></tr></thead>
+          <tbody>
+            {recent.map((r, i) => (
+              <tr key={i}><td className="mono" style={{ fontSize: 12.5 }}>{r.t.toLocaleString('zh-TW', { hour12: false })}</td><td className="mono" style={{ fontSize: 12.5 }}>{r.slug}</td><td>{r.referer || '直接'}</td><td>{r.os}</td><td>{r.browser}</td></tr>
+            ))}
+            {!recent.length && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 28, color: 'var(--muted)' }}>{state === 'ok' ? '還沒有點擊紀錄' : '連接雲端後會顯示'}</td></tr>}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
+
+/* ───────────────────────── App shell ───────────────────────── */
+const TABS_BASE = [['create', 'QrCode', '建立短網址'], ['links', 'Link2', '連結管理'], ['analytics', 'BarChart3', '成效分析'], ['domains', 'Globe', '網域設定']];
+const TABS = REAL ? [...TABS_BASE, ['cloud', 'Cloud', '雲端儲存']] : TABS_BASE;
+function siteHost() {
+  if (CFG.shortDomain) return CFG.shortDomain;
+  const h = location.host;
+  if (h.endsWith('.github.io')) { const seg = location.pathname.split('/')[1]; if (seg && !seg.includes('.')) return h + '/' + seg; }
+  return h;
+}
+function App() {
+  const fromHash = () => { const h = location.hash.replace('#', ''); return TABS.some((t) => t[0] === h) ? h : 'create'; };
+  const [tab, setTab] = useState(fromHash);
+  const [links, setLinksState] = useState(() => (REAL ? LS.get('wp-links', []) : INITIAL_LINKS));
+  const setLinks = (v) => setLinksState((prev) => { const next = typeof v === 'function' ? v(prev) : v; if (REAL) LS.set('wp-links', next); return next; });
+  const [domains, setDomains] = useState(() => (REAL ? [{ host: siteHost(), isDefault: true, dns: 'verified', ssl: 'active', cname: '', added: ymd(TODAY), fallback: CFG.fallbackUrl || '' }] : INITIAL_DOMAINS));
+  const [presets, setPresetsState] = useState(() => { try { const s = JSON.parse(localStorage.getItem('wp-presets') || 'null'); if (Array.isArray(s) && s.length) return s; } catch (e) {} return INITIAL_PRESETS; });
+  const [linkId, setLinkId] = useState('all');
+  const [toast, setToast] = useState('');
+  const tRef = useRef();
+  const notify = useCallback((m) => { setToast(m); clearTimeout(tRef.current); tRef.current = setTimeout(() => setToast(''), 2600); }, []);
+  const setPresets = (p) => { setPresetsState(p); try { localStorage.setItem('wp-presets', JSON.stringify(p)); } catch (e) {} };
+
+  // ── 雲端
+  const [cloudUrl, setCloudUrlS] = useState(() => LS.get('wp-cloud-url', '') || CFG.appsScriptUrl || '');
+  const [cloudToken, setCloudTokenS] = useState(() => LS.get('wp-cloud-token', ''));
+  const [autoSync, setAutoSyncS] = useState(() => LS.get('wp-autosync', true));
+  const [cloudState, setCloudState] = useState('off');
+  const [cloudMsg, setCloudMsg] = useState('');
+  const [rows, setRows] = useState([]);
+  const loaded = useRef(false), lastSig = useRef('');
+  const linksRef = useRef(links), presetsRef = useRef(presets);
+  linksRef.current = links; presetsRef.current = presets;
+  const setCloudUrl = (v) => { setCloudUrlS(v); LS.set('wp-cloud-url', v); };
+  const setCloudToken = (v) => { setCloudTokenS(v); LS.set('wp-cloud-token', v); };
+  const setAutoSync = (v) => { setAutoSyncS(v); LS.set('wp-autosync', v); };
+
+  const reloadRows = useCallback(async (u = cloudUrl, t = cloudToken) => {
+    try { const c = await gas(u, { action: 'clicks', token: t, days: 90 }); if (!c.ok) throw new Error(c.error || '讀取失敗'); setRows(parseClickRows(c.cols, c.rows || [])); if (c.truncated) notify('點擊資料超過上限，僅載入最近的部分'); }
+    catch (e) { notify('讀取點擊資料失敗：' + e.message); }
+  }, [cloudUrl, cloudToken]);
+
+  const connect = useCallback(async (u = cloudUrl, t = cloudToken) => {
+    if (!u || !t) { setCloudState('off'); setCloudMsg(''); notify('請填入 Apps Script 網址與管理密碼'); return; }
+    setCloudState('loading'); setCloudMsg('');
+    try {
+      const ping = await gas(u, { action: 'ping', token: t });
+      if (!ping.ok) throw new Error(ping.error === 'unauthorized' ? '管理密碼不正確' : (ping.error || '連線失敗'));
+      const all = await gas(u, { action: 'getAll', token: t });
+      if (!all.ok) throw new Error(all.error || '讀取失敗');
+      const cl = (all.links || []).map(fromCloud).reverse();                          // 新的在前
+      const keys = new Set(cl.map((l) => slugKey(l.slug)));
+      const merged = [...linksRef.current.filter((l) => !keys.has(slugKey(l.slug))), ...cl];
+      const cp = all.presets || [];
+      const pk = new Set(cp.map((p) => p.id));
+      const mergedPresets = [...cp, ...presetsRef.current.filter((p) => !pk.has(p.id))];
+      lastSig.current = sigOf(cl, cp);
+      setLinks(merged); setPresets(mergedPresets);
+      await reloadRows(u, t);
+      loaded.current = true; setCloudState('ok'); setCloudMsg(ping.sheetUrl || '');
+    } catch (e) { setCloudState('error'); setCloudMsg(e.message || '連線失敗'); }
+  }, [cloudUrl, cloudToken, reloadRows]);
+
+  const pushNow = useCallback(async (silent) => {
+    try {
+      const ls = linksRef.current, ps = presetsRef.current;
+      const r = await gas(cloudUrl, { action: 'saveLinks', token: cloudToken, links: ls.map(toCloud), presets: ps.map(presetOut), allowEmpty: true });
+      if (!r.ok) throw new Error(r.error || '儲存失敗');
+      lastSig.current = sigOf(ls, ps);
+      if (!silent) notify('已儲存到雲端（' + r.saved + ' 條）');
+    } catch (e) { notify('雲端儲存失敗：' + e.message); }
+  }, [cloudUrl, cloudToken]);
+
+  useEffect(() => { if (REAL && cloudUrl && cloudToken) connect(); }, []);
+  useEffect(() => {
+    if (!REAL || cloudState !== 'ok' || !loaded.current || !autoSync) return;
+    if (sigOf(links, presets) === lastSig.current) return;
+    const h = setTimeout(() => pushNow(true), 900);
+    return () => clearTimeout(h);
+  }, [links, presets, cloudState, autoSync, pushNow]);
+
+  useEffect(() => { const on = () => setTab(fromHash()); window.addEventListener('hashchange', on); return () => window.removeEventListener('hashchange', on); }, []);
+  const go = (t) => { location.hash = t; setTab(t); window.scrollTo(0, 0); };
+  const addLink = (l) => setLinks((ls) => [l, ...ls]);
+  const openAnalytics = (id) => { setLinkId(id); go('analytics'); };
+  const titles = {
+    create: ['建立短網址', '組合 UTM、縮短網址、產生 QR Code'], links: ['連結管理', '搜尋、暫停與檢視所有短網址'],
+    analytics: ['成效分析', '點擊、裝置、來源與地區'], domains: ['網域設定', REAL ? '使用自己的網域' : '綁定自訂品牌網域與 SSL 憑證'],
+    cloud: ['雲端儲存', '把短網址與點擊紀錄存進你的 Google 雲端硬碟'],
+  };
+
+  return (
+    <>
+      <header className="topbar">
+        <div className="wrap flex items-center gap-6 overflow-x-auto">
+          <div className="flex items-center gap-2 py-3 flex-none">
+            <span style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', color: 'var(--accent-fg)', display: 'grid', placeItems: 'center' }}><Icon name="Link2" size={15} /></span>
+            <span className="font-bold text-[16px] tracking-tight">{CFG.appName || 'Waypoint'}</span>
+          </div>
+          <nav className="flex" aria-label="主選單">
+            {TABS.map(([k, ic, t]) => <button key={k} className="tab" aria-current={tab === k ? 'page' : undefined} onClick={() => go(k)}><Icon name={ic} size={16} />{t}</button>)}
+          </nav>
+        </div>
+      </header>
+      <main className="wrap" style={{ paddingTop: 24 }}>
+        <div className="mb-5">
+          <h1 className="text-2xl font-bold">{titles[tab][0]}</h1>
+          <p className="text-[color:var(--muted)]">{titles[tab][1]}</p>
+        </div>
+        {tab === 'create' && <CreatePage domains={domains} links={links} presets={presets} setPresets={setPresets} addLink={addLink} notify={notify} />}
+        {tab === 'links' && <LinksPage links={links} setLinks={setLinks} domains={domains} openAnalytics={openAnalytics} notify={notify} cloudRows={rows} />}
+        {tab === 'analytics' && <AnalyticsPage links={links} linkId={linkId} setLinkId={setLinkId} cloudRows={rows} cloudState={cloudState} goCloud={() => go('cloud')} />}
+        {tab === 'domains' && <DomainsPage domains={domains} setDomains={setDomains} links={links} notify={notify} />}
+        {REAL && tab === 'cloud' && <CloudPage url={cloudUrl} setUrl={setCloudUrl} token={cloudToken} setToken={setCloudToken} state={cloudState} msg={cloudMsg} connect={connect} pushNow={pushNow} reloadRows={() => reloadRows()} autoSync={autoSync} setAutoSync={setAutoSync} links={links} rows={rows} notify={notify} />}
+      </main>
+      {toast && <div className="toast" role="status">{toast}</div>}
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</html>
